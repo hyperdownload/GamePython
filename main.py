@@ -1,5 +1,6 @@
 import pygame
 import sys
+import psutil
 
 class Player:
     def __init__(self, x, y, width, height, texture=None, color=None):
@@ -16,7 +17,7 @@ class Player:
         self.color = color
 
         if not self.texture and not self.color:
-            self.color = (255, 0, 255)  # Color violeta defecto
+            self.color = (255, 0, 255)  
 
     def move(self, keys):
         if keys[pygame.K_a]:
@@ -42,20 +43,21 @@ class Player:
         player_rect = pygame.Rect(self.x, self.y, self.width, self.height)
         for platform in platforms:
             if platform.block_type != 0:
-                platform_rect = pygame.Rect(platform.x - self.camera_x, platform.y, platform.width, platform.height)
+                platform_rect = pygame.Rect(platform.x, platform.y, platform.width, platform.height)
                 if player_rect.colliderect(platform_rect):
                     if self.y_speed > 0:
-                        self.y = platform.y - self.height
-                        self.is_jumping = False
-                        self.y_speed = 0
+                        if self.y_speed > (platform.y - self.height - self.y):
+                            self.y = platform.y - self.height
+                            self.is_jumping = False
+                            self.y_speed = 0
                     elif self.y_speed < 0:
-                        self.y = platform.y + platform.height
-                        self.y_speed = 0
-                    elif self.x_speed < 0:
-                        self.x = platform.x + platform.width
+                        if -self.y_speed > (platform.y + platform.height - self.y):
+                            self.y = platform.y + platform.height + platform.y
+                            self.y_speed = 0
 
     def debug_info(self):
-        print(f"Player - X: {self.x}, Y: {self.y}, X Speed: {self.x_speed}, Y Speed: {self.y_speed}",end="\r")
+        #print(f"Player - X: {self.x}, Y: {self.y}, X Speed: {self.x_speed}, Y Speed: {self.y_speed}",end="\r")
+        pass
 
 class Block:
     def __init__(self, x, y, block_type, texture=None, color=None):
@@ -64,12 +66,11 @@ class Block:
         self.block_type = block_type
         self.width = 50
         self.height = 50
-
         self.texture = texture
         self.color = color
 
         if not self.texture and not self.color:
-            self.color = (255, 0, 255)  
+            self.color = (255, 0, 255)
 
 class Game:
     def __init__(self):
@@ -79,12 +80,18 @@ class Game:
         self.screen = pygame.display.set_mode((self.screen_width, self.screen_height))
         pygame.display.set_caption("Game")
 
-        self.player = Player((self.screen_width - 50) // 2, self.screen_height - 50, 50, 50, texture="directorio_textura_jugador")
+        self.player = Player((self.screen_width - 50) // 2, self.screen_height - 50, 50, 50, texture="a.png")
         self.blocks = []
 
         self.camera_x = 0
         self.white = (255, 255, 255)
         self.clock = pygame.time.Clock()
+
+    def initialize_textures(self):
+        self.textures = {}
+        for block in self.blocks:
+            if block.texture:
+                self.textures[block.texture] = pygame.transform.scale(pygame.image.load(block.texture), (block.width, block.height))
 
     def load_map(self, filename):
         with open(filename, 'r') as file:
@@ -92,17 +99,20 @@ class Game:
             for line in file:
                 col = 0
                 for char in line.strip():
-                    if char == ' ':  
+                    if char == ' ':
                         block_type = 0
                     else:
                         block_type = int(char)
-                    block = Block(col * 50, row * 50, block_type, color=(124, 0, 0))  
+                    block = Block(col * 50, row * 50, block_type, texture="a.png", color=None)
                     self.blocks.append(block)
                     col += 1
                 row += 1
 
     def run(self):
         running = True
+        process = psutil.Process()  
+        self.initialize_textures()  
+
         while running:
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
@@ -124,6 +134,10 @@ class Game:
 
             self.player.debug_info()
 
+            cpu_percent = process.cpu_percent()
+            memory_percent = process.memory_percent()
+            print(f"CPU Usage: {cpu_percent}%  Memory Usage: {round(memory_percent)}%  ", end="\r")
+
             self.clock.tick(60)
 
         pygame.quit()
@@ -133,7 +147,11 @@ class Game:
         for block in self.blocks:
             if block.block_type == 1:
                 block_rect = pygame.Rect(block.x - self.camera_x, block.y, block.width, block.height)
-                pygame.draw.rect(self.screen, block.color, block_rect)
+
+                if block.texture:
+                    self.screen.blit(self.textures[block.texture], block_rect)
+                else:
+                    pygame.draw.rect(self.screen, block.color, block_rect)
 
 if __name__ == "__main__":
     game = Game()
