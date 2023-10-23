@@ -15,20 +15,20 @@ class Player:
 
         self.texture = texture
         self.color = color
-
         if not self.texture and not self.color:
-            self.color = (255, 0, 255)  
+            self.color = (255, 0, 255)
 
     def move(self, keys):
         if keys[pygame.K_a]:
-            self.x -= self.x_speed
+            if self.x>1:
+                self.x -= self.x_speed
         if keys[pygame.K_d]:
             self.x += self.x_speed
 
     def jump(self, keys):
         if not self.is_jumping:
             if keys[pygame.K_SPACE]:
-                self.y_speed = -10
+                self.y_speed = -15
                 self.is_jumping = True
 
     def update(self, screen_height):
@@ -80,7 +80,7 @@ class Game:
         self.screen = pygame.display.set_mode((self.screen_width, self.screen_height))
         pygame.display.set_caption("Game")
 
-        self.player = Player((self.screen_width - 50) // 2, self.screen_height - 50, 50, 50, texture="a.png")
+        self.player = Player((self.screen_width - 50) // 2, self.screen_height - 50, 50, 50, texture="elweon.png")
         self.blocks = []
 
         self.camera_x = 0
@@ -91,8 +91,10 @@ class Game:
         self.textures = {}
         for block in self.blocks:
             if block.texture:
-                self.textures[block.texture] = pygame.transform.scale(pygame.image.load(block.texture), (block.width, block.height))
-
+                image = pygame.image.load(block.texture)
+                if image:
+                    image = pygame.transform.scale(image, (block.width, block.height))
+                    self.textures[block.texture] = image
     def load_map(self, filename):
         with open(filename, 'r') as file:
             row = 0
@@ -110,9 +112,9 @@ class Game:
 
     def run(self):
         running = True
-        process = psutil.Process()  
-        self.initialize_textures()  
-
+        process = psutil.Process()
+        self.initialize_textures()
+        
         while running:
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
@@ -125,18 +127,20 @@ class Game:
             self.player.update(self.screen_height)
             self.player.check_collision(self.blocks)
 
-            self.camera_x = self.player.x - self.screen_width // 2
+            if self.player.x>395:
+                self.camera_x = self.player.x - self.screen_width // 2
 
             self.screen.fill(self.white)
             self.draw_map()
-            pygame.draw.rect(self.screen, (0, 0, 255), (self.player.x - self.camera_x, self.player.y, self.player.width, self.player.height))
+            self.draw_entities()
             pygame.display.update()
 
             self.player.debug_info()
 
             cpu_percent = process.cpu_percent()
             memory_percent = process.memory_percent()
-            print(f"CPU Usage: {cpu_percent}%  Memory Usage: {round(memory_percent)}%  ", end="\r")
+            
+            print(f"CPU Usage: {cpu_percent}%  Memory Usage: {round(memory_percent)}% ", end="\r")
 
             self.clock.tick(60)
 
@@ -152,7 +156,17 @@ class Game:
                     self.screen.blit(self.textures[block.texture], block_rect)
                 else:
                     pygame.draw.rect(self.screen, block.color, block_rect)
-
+                    
+    def draw_entities(self):
+        if self.player.texture:
+            player_texture = pygame.image.load(self.player.texture)
+            player_texture=pygame.transform.scale(player_texture, (self.player.width, self.player.height))
+            if player_texture:
+                player_rect = pygame.Rect(self.player.x - self.camera_x, self.player.y, self.player.width, self.player.height)
+                self.screen.blit(player_texture, player_rect)
+        else:
+            pygame.draw.rect(self.screen, self.player.color, (self.player.x - self.camera_x, self.player.y, self.player.width, self.player.height))
+        
 if __name__ == "__main__":
     game = Game()
     game.load_map("map.txt")
