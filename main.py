@@ -54,9 +54,13 @@ class Player:
                         if -self.y_speed > (platform.y + platform.height - self.y):
                             self.y = platform.y + platform.height + platform.y
                             self.y_speed = 0
+                    elif self.x_speed > 0:
+                        if self.x_speed > (platform.x - self.width - self.x):
+                            self.x = platform.x - self.width
+
 
     def debug_info(self):
-        #print(f"Player - X: {self.x}, Y: {self.y}, X Speed: {self.x_speed}, Y Speed: {self.y_speed}",end="\r")
+        print(f"Player - X: {self.x}, Y: {self.y}, X Speed: {self.x_speed}, Y Speed: {self.y_speed}",end="\r")
         pass
 
 class Block:
@@ -105,7 +109,7 @@ class Game:
                         block_type = 0
                     else:
                         block_type = int(char)
-                    block = Block(col * 50, row * 50, block_type, texture="a.png", color=None)
+                    block = Block(col * 50, row * 50, block_type, texture="b.png", color=None)
                     self.blocks.append(block)
                     col += 1
                 row += 1
@@ -140,7 +144,7 @@ class Game:
             cpu_percent = process.cpu_percent()
             memory_percent = process.memory_percent()
             
-            print(f"CPU Usage: {cpu_percent}%  Memory Usage: {round(memory_percent)}% ", end="\r")
+            #print(f"CPU Usage: {cpu_percent}%  Memory Usage: {round(memory_percent)}% ", end="\r")
 
             self.clock.tick(60)
 
