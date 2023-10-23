@@ -46,17 +46,15 @@ class Player:
                 platform_rect = pygame.Rect(platform.x, platform.y, platform.width, platform.height)
                 if player_rect.colliderect(platform_rect):
                     if self.y_speed > 0:
-                        if self.y_speed > (platform.y - self.height - self.y):
-                            self.y = platform.y - self.height
-                            self.is_jumping = False
-                            self.y_speed = 0
-                    elif self.y_speed < 0:
-                        if -self.y_speed > (platform.y + platform.height - self.y):
-                            self.y = platform.y + platform.height + platform.y
-                            self.y_speed = 0
-                    elif self.x_speed > 0:
-                        if self.x_speed > (platform.x - self.width - self.x):
-                            self.x = platform.x - self.width
+                        self.y = platform.y - self.height 
+                        self.is_jumping = False
+                        self.y_speed = 0
+                    elif -self.y_speed > (platform.y + platform.height - self.y):
+                        self.y = platform.y + self.height
+                        self.y_speed = 0
+                    elif self.x_speed > (platform.x + self.width - self.x):
+                        self.x = platform.x - self.width
+                        self.x_speed = 0
 
 
     def debug_info(self):
@@ -128,8 +126,8 @@ class Game:
 
             self.player.move(keys)
             self.player.jump(keys)
-            self.player.update(self.screen_height)
             self.player.check_collision(self.blocks)
+            self.player.update(self.screen_height)
 
             if self.player.x>395:
                 self.camera_x = self.player.x - self.screen_width // 2
