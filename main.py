@@ -8,11 +8,12 @@ class Player:
         self.y = y
         self.width = width
         self.height = height
-        self.x_speed = 5
+        self.x_speed = 0
         self.y_speed = 0
         self.camera_x = 0
         self.is_jumping = False
-
+        self.acceleration = 0.2
+        
         self.texture = texture
         self.color = color
         if not self.texture and not self.color:
@@ -20,11 +21,22 @@ class Player:
 
     def move(self, keys):
         if keys[pygame.K_a]:
-            if self.x>1:
-                self.x -= self.x_speed
-        if keys[pygame.K_d]:
-            self.x += self.x_speed
+            if self.x > 1:
+                self.x_speed -= self.acceleration
+        elif keys[pygame.K_d]:
+            self.x_speed += self.acceleration
+        else:
+            if self.x_speed > 0:
+                self.x_speed -= self.acceleration
+                self.x_speed = max(self.x_speed, 0)  
+            elif self.x_speed < 0:
+                self.x_speed += self.acceleration
+                self.x_speed = min(self.x_speed, 0)  
 
+        max_speed = 5
+        self.x_speed = max(min(self.x_speed, max_speed), -max_speed)
+
+        self.x += self.x_speed
     def jump(self, keys):
         if not self.is_jumping:
             if keys[pygame.K_SPACE]:
@@ -45,20 +57,31 @@ class Player:
             if platform.block_type != 0:
                 platform_rect = pygame.Rect(platform.x, platform.y, platform.width, platform.height)
                 if player_rect.colliderect(platform_rect):
-                    if self.y_speed > 0:
-                        self.y = platform.y - self.height 
-                        self.is_jumping = False
-                        self.y_speed = 0
-                    elif -self.y_speed > (platform.y + platform.height - self.y):
-                        self.y = platform.y + self.height
-                        self.y_speed = 0
-                    elif self.x_speed > (platform.x + self.width - self.x):
-                        self.x = platform.x - self.width
-                        self.x_speed = 0
+                    dx = player_rect.centerx - platform_rect.centerx
+                    dy = player_rect.centery - platform_rect.centery
 
+                    if abs(dx) > abs(dy):
+                        if dx > 0:
+                            self.x = platform_rect.right
+                            self.x_speed = 0
+                        else:
+                            self.x = platform_rect.left - self.width
+                            self.x_speed = 0
+                    else:
+                        if dy > 0:
+                            self.y = platform_rect.bottom
+                            self.is_jumping = False
+                            self.y_speed = 0
+                        else:
+                            self.y = platform_rect.top - self.height
+                            self.is_jumping = False
+                            self.y_speed = 0
 
     def debug_info(self):
-        print(f"Player - X: {self.x}, Y: {self.y}, X Speed: {self.x_speed}, Y Speed: {self.y_speed}",end="\r")
+        process = psutil.Process()
+        cpu_percent = process.cpu_percent()
+        memory_percent = process.memory_percent()
+        print(f"Player - X: {round(self.x)}, Y: {self.y}, X Speed: {round(self.x_speed)}, Y Speed: {self.y_speed} / CPU Usage: {cpu_percent}%  Memory Usage: {round(memory_percent)}% {self.is_jumping}", end="\r")
         pass
 
 class Block:
@@ -114,7 +137,6 @@ class Game:
 
     def run(self):
         running = True
-        process = psutil.Process()
         self.initialize_textures()
         
         while running:
@@ -138,11 +160,6 @@ class Game:
             pygame.display.update()
 
             self.player.debug_info()
-
-            cpu_percent = process.cpu_percent()
-            memory_percent = process.memory_percent()
-            
-            #print(f"CPU Usage: {cpu_percent}%  Memory Usage: {round(memory_percent)}% ", end="\r")
 
             self.clock.tick(60)
 
