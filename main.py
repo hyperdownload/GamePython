@@ -2,6 +2,22 @@ import pygame
 import sys
 import psutil
 
+class Animation:
+    def __init__(self, frames):
+        self.frames = frames
+        self.frame_index = 0
+        self.frame_rate = 10
+        self.frame_counter = 0
+
+    def update(self):
+        self.frame_counter += 1
+        if self.frame_counter >= self.frame_rate:
+            self.frame_index = (self.frame_index + 1) % len(self.frames)
+            self.frame_counter = 0
+
+    def current_frame(self):
+        return self.frames[self.frame_index]
+
 class Player:
     def __init__(self, x, y, width, height, texture=None, color=None):
         self.x = x
@@ -18,6 +34,16 @@ class Player:
         self.color = color
         if not self.texture and not self.color:
             self.color = (255, 0, 255)
+
+        # Animations
+        idle_animation = Animation([pygame.image.load("a.png"), pygame.image.load("a.png")])
+        walk_animation = Animation([pygame.image.load("elweon.png"), pygame.image.load("elweon.png")])
+
+        self.animations = {
+            "idle": idle_animation,
+            "walk": walk_animation,
+        }
+        self.current_animation = "idle"
 
     def move(self, keys):
         if keys[pygame.K_a]:
@@ -37,6 +63,7 @@ class Player:
         self.x_speed = max(min(self.x_speed, max_speed), -max_speed)
 
         self.x += self.x_speed
+
     def jump(self, keys):
         if not self.is_jumping:
             if keys[pygame.K_SPACE]:
@@ -64,11 +91,9 @@ class Player:
                         if dx > 0:
                             self.x = platform_rect.right
                             self.x_speed = 0
-                           
                         else:
                             self.x = platform_rect.left - self.width
                             self.x_speed = 0
-
                     else:
                         if dy > 0:
                             self.y = platform_rect.bottom
@@ -79,12 +104,20 @@ class Player:
                             self.is_jumping = False
                             self.y_speed = 0
 
+    def update_animation(self):
+        self.animations[self.current_animation].update()
+
+    def draw(self, screen, camera_x):
+        player_texture = self.animations[self.current_animation].current_frame()
+        player_texture = pygame.transform.scale(player_texture, (self.width, self.height))
+        player_rect = pygame.Rect(self.x - camera_x, self.y, self.width, self.height)
+        screen.blit(player_texture, player_rect)
+
     def debug_info(self):
         process = psutil.Process()
         cpu_percent = process.cpu_percent()
         memory_percent = process.memory_percent()
         print(f"Player - X: {round(self.x)}, Y: {self.y}, X Speed: {round(self.x_speed)}, Y Speed: {self.y_speed} / CPU Usage: {cpu_percent}%  Memory Usage: {round(memory_percent)}% {self.is_jumping}", end="\r")
-        pass
 
 class Block:
     def __init__(self, x, y, block_type, texture=None, color=None):
@@ -96,7 +129,7 @@ class Block:
         self.texture = texture
         self.color = color
 
-        if not self.texture and not self.color:
+        if not self.texture and not this.color:
             self.color = (255, 0, 255)
 
 class Game:
@@ -122,6 +155,7 @@ class Game:
                 if image:
                     image = pygame.transform.scale(image, (block.width, block.height))
                     self.textures[block.texture] = image
+
     def load_map(self, filename):
         with open(filename, 'r') as file:
             row = 0
@@ -153,12 +187,24 @@ class Game:
             self.player.check_collision(self.blocks)
             self.player.update(self.screen_height)
 
-            if self.player.x>395:
+            # Cambia la animación según las teclas presionadas
+            if keys[pygame.K_a] or keys[pygame.K_d]:
+                self.player.current_animation = "walk"
+            else:
+                self.player.current_animation = "idle"
+
+            if self.player.x > 395:
                 self.camera_x = self.player.x - self.screen_width // 2
 
             self.screen.fill(self.white)
             self.draw_map()
-            self.draw_entities()
+
+            # Actualiza la animación del jugador
+            self.player.update_animation()
+
+            # Dibuja al jugador según la animación actual
+            self.player.draw(self.screen, self.camera_x)
+
             pygame.display.update()
 
             self.player.debug_info()
@@ -177,17 +223,7 @@ class Game:
                     self.screen.blit(self.textures[block.texture], block_rect)
                 else:
                     pygame.draw.rect(self.screen, block.color, block_rect)
-                    
-    def draw_entities(self):
-        if self.player.texture:
-            player_texture = pygame.image.load(self.player.texture)
-            player_texture=pygame.transform.scale(player_texture, (self.player.width, self.player.height))
-            if player_texture:
-                player_rect = pygame.Rect(self.player.x - self.camera_x, self.player.y, self.player.width, self.player.height)
-                self.screen.blit(player_texture, player_rect)
-        else:
-            pygame.draw.rect(self.screen, self.player.color, (self.player.x - self.camera_x, self.player.y, self.player.width, self.player.height))
-        
+
 if __name__ == "__main__":
     game = Game()
     game.load_map("map.txt")
