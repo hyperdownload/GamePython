@@ -35,7 +35,6 @@ class Player:
         if not self.texture and not self.color:
             self.color = (255, 0, 255)
 
-        # Animations
         idle_animation = Animation([pygame.image.load("a.png"), pygame.image.load("a.png")])
         walk_animation = Animation([pygame.image.load("elweon.png"), pygame.image.load("elweon.png")])
 
@@ -187,7 +186,6 @@ class Game:
             self.player.check_collision(self.blocks)
             self.player.update(self.screen_height)
 
-            # Cambia la animación según las teclas presionadas
             if keys[pygame.K_a] or keys[pygame.K_d]:
                 self.player.current_animation = "walk"
             else:
@@ -199,10 +197,8 @@ class Game:
             self.screen.fill(self.white)
             self.draw_map()
 
-            # Actualiza la animación del jugador
             self.player.update_animation()
 
-            # Dibuja al jugador según la animación actual
             self.player.draw(self.screen, self.camera_x)
 
             pygame.display.update()
