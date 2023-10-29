@@ -64,9 +64,11 @@ class Player:
                         if dx > 0:
                             self.x = platform_rect.right
                             self.x_speed = 0
+                           
                         else:
                             self.x = platform_rect.left - self.width
                             self.x_speed = 0
+
                     else:
                         if dy > 0:
                             self.y = platform_rect.bottom
