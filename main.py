@@ -43,13 +43,16 @@ class Player:
             "walk": walk_animation,
         }
         self.current_animation = "idle"
+        self.orientation = "right"  # Inicialmente, el jugador mira a la derecha
 
     def move(self, keys):
         if keys[pygame.K_a]:
             if self.x > 1:
                 self.x_speed -= self.acceleration
+                self.orientation = "left"  # Cambiar la orientación a "left"
         elif keys[pygame.K_d]:
             self.x_speed += self.acceleration
+            self.orientation = "right"  # Cambiar la orientación a "right"
         else:
             if self.x_speed > 0:
                 self.x_speed -= self.acceleration
@@ -104,10 +107,19 @@ class Player:
                             self.y_speed = 0
 
     def update_animation(self):
+        if self.x_speed != 0:
+            self.current_animation = "walk"
+        else:
+            self.current_animation = "idle"
+
+        # Actualiza la animación
         self.animations[self.current_animation].update()
 
     def draw(self, screen, camera_x):
         player_texture = self.animations[self.current_animation].current_frame()
+        if self.orientation == "left":
+            # Voltear la imagen si la orientación es "left"
+            player_texture = pygame.transform.flip(player_texture, True, False)
         player_texture = pygame.transform.scale(player_texture, (self.width, self.height))
         player_rect = pygame.Rect(self.x - camera_x, self.y, self.width, self.height)
         screen.blit(player_texture, player_rect)
@@ -116,7 +128,7 @@ class Player:
         process = psutil.Process()
         cpu_percent = process.cpu_percent()
         memory_percent = process.memory_percent()
-        print(f"Player - X: {round(self.x)}, Y: {self.y}, X Speed: {round(self.x_speed)}, Y Speed: {self.y_speed} / CPU Usage: {cpu_percent}%  Memory Usage: {round(memory_percent)}% {self.is_jumping}", end="\r")
+        print(f"Player - X: {round(self.x)}, Y: {round(self.y)}, X Speed: {round(self.x_speed)}, Y Speed: {round(self.y_speed)} / CPU Usage: {cpu_percent}%  Memory Usage: {round(memory_percent)}% {self.is_jumping}", end="\r")
 
 class Block:
     def __init__(self, x, y, block_type, texture=None, color=None):
