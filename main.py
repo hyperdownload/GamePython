@@ -43,16 +43,16 @@ class Player:
             "walk": walk_animation,
         }
         self.current_animation = "idle"
-        self.orientation = "right"  # Inicialmente, el jugador mira a la derecha
+        self.orientation = "right"  
 
     def move(self, keys):
         if keys[pygame.K_a]:
             if self.x > 1:
                 self.x_speed -= self.acceleration
-                self.orientation = "left"  # Cambiar la orientación a "left"
+                self.orientation = "left" 
         elif keys[pygame.K_d]:
             self.x_speed += self.acceleration
-            self.orientation = "right"  # Cambiar la orientación a "right"
+            self.orientation = "right" 
         else:
             if self.x_speed > 0:
                 self.x_speed -= self.acceleration
@@ -112,13 +112,11 @@ class Player:
         else:
             self.current_animation = "idle"
 
-        # Actualiza la animación
         self.animations[self.current_animation].update()
 
     def draw(self, screen, camera_x):
         player_texture = self.animations[self.current_animation].current_frame()
         if self.orientation == "left":
-            # Voltear la imagen si la orientación es "left"
             player_texture = pygame.transform.flip(player_texture, True, False)
         player_texture = pygame.transform.scale(player_texture, (self.width, self.height))
         player_rect = pygame.Rect(self.x - camera_x, self.y, self.width, self.height)
