@@ -1,7 +1,23 @@
 import pygame
 import sys
 import psutil
+class SoundManager:
+    def __init__(self):
+        pygame.mixer.init()
+        self.sounds = {}
 
+    def load_sound(self, sound_name, sound_file):
+        sound = pygame.mixer.Sound(sound_file)
+        self.sounds[sound_name] = sound
+
+    def play(self, sound_name):
+        if sound_name in self.sounds:
+            self.sounds[sound_name].play()
+
+    def stop(self, sound_name):
+        if sound_name in self.sounds:
+            self.sounds[sound_name].stop()
+            
 class Animation:
     def __init__(self, frames):
         self.frames = frames
@@ -35,8 +51,8 @@ class Player:
         if not self.texture and not self.color:
             self.color = (255, 0, 255)
 
-        idle_animation = Animation([pygame.image.load("a.png"), pygame.image.load("a.png")])
-        walk_animation = Animation([pygame.image.load("elweon.png"), pygame.image.load("elweon.png")])
+        idle_animation = Animation([pygame.image.load("textures/a.png"), pygame.image.load("textures/a.png")])
+        walk_animation = Animation([pygame.image.load("textures/elweon.png"), pygame.image.load("textures/elweon.png")])
 
         self.animations = {
             "idle": idle_animation,
@@ -79,32 +95,39 @@ class Player:
         if self.y >= screen_height - self.height:
             self.y = screen_height - self.height
             self.is_jumping = False
+            self.y_speed = 0
 
     def check_collision(self, platforms):
         player_rect = pygame.Rect(self.x, self.y, self.width, self.height)
-        for platform in platforms:
-            if platform.block_type != 0:
-                platform_rect = pygame.Rect(platform.x, platform.y, platform.width, platform.height)
-                if player_rect.colliderect(platform_rect):
-                    dx = player_rect.centerx - platform_rect.centerx
-                    dy = player_rect.centery - platform_rect.centery
+        
+        broad_rect = player_rect.inflate(5, 5)  
 
-                    if abs(dx) > abs(dy):
-                        if dx > 0:
-                            self.x = platform_rect.right
-                            self.x_speed = 0
+        for platform in platforms:
+            if platform.collidable:
+                platform_rect = pygame.Rect(platform.x, platform.y, platform.width, platform.height)
+                
+                if broad_rect.colliderect(platform_rect):
+                    if player_rect.colliderect(platform_rect):
+                        dx = player_rect.centerx - platform_rect.centerx
+                        dy = player_rect.centery - platform_rect.centery
+                        
+                        if abs(dx) > abs(dy):
+                            if dx > 0:
+                                self.x = platform_rect.right
+                                self.x_speed = 0
+                            if dx < 0:
+                                self.x = platform_rect.left - self.width
+                                self.x_speed = 0
                         else:
-                            self.x = platform_rect.left - self.width
-                            self.x_speed = 0
-                    else:
-                        if dy > 0:
-                            self.y = platform_rect.bottom
-                            self.is_jumping = False
-                            self.y_speed = 0
-                        else:
-                            self.y = platform_rect.top - self.height
-                            self.is_jumping = False
-                            self.y_speed = 0
+                            if dy > 0:
+                                self.y = platform_rect.bottom
+                                self.is_jumping = True
+                                self.y_speed = 0
+                            else:
+                                self.y = platform_rect.top - self.height
+                                self.is_jumping = False
+                                self.y_speed = 0
+                                print(dx, dy)
 
     def update_animation(self):
         if self.x_speed != 0:
@@ -126,12 +149,13 @@ class Player:
         process = psutil.Process()
         cpu_percent = process.cpu_percent()
         memory_percent = process.memory_percent()
-        print(f"Player - X: {round(self.x)}, Y: {round(self.y)}, X Speed: {round(self.x_speed)}, Y Speed: {round(self.y_speed)} / CPU Usage: {cpu_percent}%  Memory Usage: {round(memory_percent)}% {self.is_jumping}", end="\r")
+        #print(f"Player - X: {round(self.x)}, Y: {round(self.y)}, X Speed: {round(self.x_speed)}, Y Speed: {round(self.y_speed)} / CPU Usage: {cpu_percent}%  Memory Usage: {round(memory_percent)}% {self.is_jumping}", end="\r")
 
 class Block:
-    def __init__(self, x, y, block_type, texture=None, color=None):
+    def __init__(self, x, y, block_type, collidable, texture=None, color=None):
         self.x = x
         self.y = y
+        self.collidable = collidable
         self.block_type = block_type
         self.width = 50
         self.height = 50
@@ -149,12 +173,14 @@ class Game:
         self.screen = pygame.display.set_mode((self.screen_width, self.screen_height))
         pygame.display.set_caption("Game")
 
-        self.player = Player((self.screen_width - 50) // 2, self.screen_height - 50, 50, 50, texture="elweon.png")
+        self.player = Player((self.screen_width - 50) // 2, self.screen_height - 50, 50, 50, texture="textures/elweon.png")
         self.blocks = []
 
         self.camera_x = 0
         self.white = (255, 255, 255)
         self.clock = pygame.time.Clock()
+
+        self.sound = SoundManager()  
 
     def initialize_textures(self):
         self.textures = {}
@@ -173,16 +199,27 @@ class Game:
                 for char in line.strip():
                     if char == ' ':
                         block_type = 0
+                        collidable = False
+                    elif char == '1':
+                        block_type = int(char)
+                        collidable = True
                     else:
                         block_type = int(char)
-                    block = Block(col * 50, row * 50, block_type, texture="b.png", color=None)
+                        collidable = False
+                    block = Block(col * 50, row * 50, block_type, collidable, texture="textures/b.png", color=None)
                     self.blocks.append(block)
                     col += 1
                 row += 1
 
+    def set_background(self, background_image):
+        self.background = pygame.image.load(background_image)
+        self.background = pygame.transform.scale(self.background, (self.screen_width, self.screen_height))
+
     def run(self):
         running = True
         self.initialize_textures()
+
+        self.set_background("textures/a.png")
         
         while running:
             for event in pygame.event.get():
@@ -191,10 +228,10 @@ class Game:
 
             keys = pygame.key.get_pressed()
 
+            self.player.update(self.screen_height)
+            self.player.check_collision(self.blocks)
             self.player.move(keys)
             self.player.jump(keys)
-            self.player.check_collision(self.blocks)
-            self.player.update(self.screen_height)
 
             if keys[pygame.K_a] or keys[pygame.K_d]:
                 self.player.current_animation = "walk"
@@ -203,8 +240,10 @@ class Game:
 
             if self.player.x > 395:
                 self.camera_x = self.player.x - self.screen_width // 2
-
             self.screen.fill(self.white)
+
+            self.screen.blit(self.background, (0, 0))
+
             self.draw_map()
 
             self.player.update_animation()
@@ -215,7 +254,7 @@ class Game:
 
             self.player.debug_info()
 
-            self.clock.tick(60)
+            self.clock.tick(60) 
 
         pygame.quit()
         sys.exit()
@@ -232,5 +271,5 @@ class Game:
 
 if __name__ == "__main__":
     game = Game()
-    game.load_map("map.txt")
+    game.load_map("sources/map.txt")
     game.run()
