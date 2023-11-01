@@ -33,6 +33,57 @@ class Animation:
 
     def current_frame(self):
         return self.frames[self.frame_index]
+class Enemy:
+    def __init__(self, x, y, width, height, speed, texture=None, color=None):
+        self.x = x
+        self.y = y
+        self.width = width
+        self.height = height
+        self.speed = speed  
+        self.direction = 1  
+        self.on_ground = False
+
+        self.texture = texture
+        self.color = color
+
+        if not self.texture and not self.color:
+            self.color = (255, 0, 0) 
+
+        idle_animation = Animation([pygame.image.load("textures/a.png"), pygame.image.load("textures/a.png")])
+        walk_animation = Animation([pygame.image.load("textures/elweon.png"), pygame.image.load("textures/elweon.png")])
+
+        self.animations = {
+            "idle": idle_animation,
+            "walk": walk_animation,
+        }
+        self.current_animation = "idle"
+
+    def move(self):
+        self.x += self.speed * self.direction
+
+    def update_animation(self):
+        if self.speed != 0:
+            self.current_animation = "walk"
+        else:
+            self.current_animation = "idle"
+
+        self.animations[self.current_animation].update()
+
+    def draw(self, screen, camera_x):
+        enemy_texture = self.animations[self.current_animation].current_frame()
+        enemy_texture = pygame.transform.scale(enemy_texture, (self.width, self.height))
+        enemy_rect = pygame.Rect(self.x - camera_x, self.y, self.width, self.height)
+        screen.blit(enemy_texture, enemy_rect)
+
+    def check_collision(self, platforms):
+        enemy_rect = pygame.Rect(self.x, self.y, self.width, self.height)
+
+        for platform in platforms:
+            if platform.collidable:
+                platform_rect = pygame.Rect(platform.x, platform.y, platform.width, platform.height)
+                if enemy_rect.colliderect(platform_rect):
+                    self.direction *= -1  
+                    break  
 
 class Player:
     def __init__(self, x, y, width, height, texture=None, color=None):
@@ -44,7 +95,7 @@ class Player:
         self.y_speed = 0
         self.camera_x = 0
         self.is_jumping = False
-        self.acceleration = 0.2
+        self.acceleration = 0.3
         
         self.texture = texture
         self.color = color
@@ -110,12 +161,11 @@ class Player:
                     if player_rect.colliderect(platform_rect):
                         dx = player_rect.centerx - platform_rect.centerx
                         dy = player_rect.centery - platform_rect.centery
-                        
                         if abs(dx) > abs(dy):
                             if dx > 0:
                                 self.x = platform_rect.right
                                 self.x_speed = 0
-                            if dx < 0:
+                            else:
                                 self.x = platform_rect.left - self.width
                                 self.x_speed = 0
                         else:
@@ -127,7 +177,7 @@ class Player:
                                 self.y = platform_rect.top - self.height
                                 self.is_jumping = False
                                 self.y_speed = 0
-                                print(dx, dy)
+                                
 
     def update_animation(self):
         if self.x_speed != 0:
@@ -145,11 +195,14 @@ class Player:
         player_rect = pygame.Rect(self.x - camera_x, self.y, self.width, self.height)
         screen.blit(player_texture, player_rect)
 
+    def respawn(self):
+        self.x=50
+        self.y=500
     def debug_info(self):
         process = psutil.Process()
         cpu_percent = process.cpu_percent()
         memory_percent = process.memory_percent()
-        #print(f"Player - X: {round(self.x)}, Y: {round(self.y)}, X Speed: {round(self.x_speed)}, Y Speed: {round(self.y_speed)} / CPU Usage: {cpu_percent}%  Memory Usage: {round(memory_percent)}% {self.is_jumping}", end="\r")
+        print(f"Player - X: {round(self.x)}, Y: {round(self.y)}, X Speed: {round(self.x_speed)}, Y Speed: {round(self.y_speed)} / CPU Usage: {cpu_percent}%  Memory Usage: {round(memory_percent)}% {self.is_jumping}", end="\r")
 
 class Block:
     def __init__(self, x, y, block_type, collidable, texture=None, color=None):
@@ -181,7 +234,15 @@ class Game:
         self.clock = pygame.time.Clock()
 
         self.sound = SoundManager()  
+        
+    def check_enemy_collision(self, player, enemy):
+        player_rect = pygame.Rect(player.x, player.y, player.width, player.height)
+        enemy_rect = pygame.Rect(enemy.x, enemy.y, enemy.width, enemy.height)
 
+        if player_rect.colliderect(enemy_rect):
+            self.player.respawn()
+            pass
+    
     def initialize_textures(self):
         self.textures = {}
         for block in self.blocks:
@@ -218,8 +279,9 @@ class Game:
     def run(self):
         running = True
         self.initialize_textures()
-
         self.set_background("textures/a.png")
+
+        enemy = Enemy(350, 500, 50, 50, 2)
         
         while running:
             for event in pygame.event.get():
@@ -233,6 +295,11 @@ class Game:
             self.player.move(keys)
             self.player.jump(keys)
 
+            enemy.move()
+            enemy.check_collision(self.blocks)
+            self.check_enemy_collision(self.player, enemy)
+            enemy.update_animation()
+
             if keys[pygame.K_a] or keys[pygame.K_d]:
                 self.player.current_animation = "walk"
             else:
@@ -240,6 +307,7 @@ class Game:
 
             if self.player.x > 395:
                 self.camera_x = self.player.x - self.screen_width // 2
+
             self.screen.fill(self.white)
 
             self.screen.blit(self.background, (0, 0))
@@ -247,17 +315,19 @@ class Game:
             self.draw_map()
 
             self.player.update_animation()
-
             self.player.draw(self.screen, self.camera_x)
+
+            enemy.draw(self.screen, self.camera_x)
 
             pygame.display.update()
 
             self.player.debug_info()
 
-            self.clock.tick(60) 
+            self.clock.tick(60)
 
         pygame.quit()
         sys.exit()
+
 
     def draw_map(self):
         for block in self.blocks:
