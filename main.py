@@ -239,9 +239,17 @@ class Game:
         player_rect = pygame.Rect(player.x, player.y, player.width, player.height)
         enemy_rect = pygame.Rect(enemy.x, enemy.y, enemy.width, enemy.height)
 
+        # Verificar colisión en los costados
         if player_rect.colliderect(enemy_rect):
-            self.player.respawn()
-            pass
+            # Verificar si el jugador está a la izquierda del enemigo
+            if player.x + player.width < enemy.x + enemy.width / 2:
+                print("a (colisión en el lado izquierdo)")
+            # Verificar si el jugador está a la derecha del enemigo
+            elif player.x > enemy.x + enemy.width / 2:
+                print("a (colisión en el lado derecho)")
+            # En caso contrario, el jugador está encima del enemigo
+            else:
+                print("b (colisión en la parte superior)")
     
     def initialize_textures(self):
         self.textures = {}
