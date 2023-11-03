@@ -102,12 +102,13 @@ class Player:
         if not self.texture and not self.color:
             self.color = (255, 0, 255)
 
-        idle_animation = Animation([pygame.image.load("textures/a.png"), pygame.image.load("textures/a.png")])
-        walk_animation = Animation([pygame.image.load("textures/elweon.png"), pygame.image.load("textures/elweon.png")])
-
+        idle_animation = Animation([pygame.image.load("textures/idle.png"), pygame.image.load("textures/idle.png")])
+        walk_animation = Animation([pygame.image.load("textures/walk1.png"), pygame.image.load("textures/walk2.png"), pygame.image.load("textures/walk3.png")])
+        jump_animation = Animation([pygame.image.load("textures/jump.png")])
         self.animations = {
             "idle": idle_animation,
             "walk": walk_animation,
+            "jump": jump_animation,
         }
         self.current_animation = "idle"
         self.orientation = "right"  
@@ -182,6 +183,8 @@ class Player:
     def update_animation(self):
         if self.x_speed != 0:
             self.current_animation = "walk"
+        elif self.y_speed != 0:
+            self.current_animation = "jump"
         else:
             self.current_animation = "idle"
 
@@ -203,7 +206,6 @@ class Player:
         cpu_percent = process.cpu_percent()
         memory_percent = process.memory_percent()
         print(f"Player - X: {round(self.x)}, Y: {round(self.y)}, X Speed: {round(self.x_speed)}, Y Speed: {round(self.y_speed)} / CPU Usage: {cpu_percent}%  Memory Usage: {round(memory_percent)}% {self.is_jumping}", end="\r")
-
 class Block:
     def __init__(self, x, y, block_type, collidable, texture=None, color=None):
         self.x = x
@@ -239,15 +241,11 @@ class Game:
         player_rect = pygame.Rect(player.x, player.y, player.width, player.height)
         enemy_rect = pygame.Rect(enemy.x, enemy.y, enemy.width, enemy.height)
 
-        # Verificar colisión en los costados
         if player_rect.colliderect(enemy_rect):
-            # Verificar si el jugador está a la izquierda del enemigo
             if player.x + player.width < enemy.x + enemy.width / 2:
-                print("a (colisión en el lado izquierdo)")
-            # Verificar si el jugador está a la derecha del enemigo
+                self.player.respawn()
             elif player.x > enemy.x + enemy.width / 2:
-                print("a (colisión en el lado derecho)")
-            # En caso contrario, el jugador está encima del enemigo
+                self.player.respawn()
             else:
                 print("b (colisión en la parte superior)")
     
