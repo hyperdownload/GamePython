@@ -42,19 +42,20 @@ class Enemy:
         self.speed = speed  
         self.direction = 1  
         self.on_ground = False
-
+        self.is_life = True
         self.texture = texture
         self.color = color
 
         if not self.texture and not self.color:
             self.color = (255, 0, 0) 
-
+        death_animation = Animation([pygame.image.load("textures/a.png"), pygame.image.load("textures/a.png")])
         idle_animation = Animation([pygame.image.load("textures/a.png"), pygame.image.load("textures/a.png")])
         walk_animation = Animation([pygame.image.load("textures/elweon.png"), pygame.image.load("textures/elweon.png")])
 
         self.animations = {
             "idle": idle_animation,
             "walk": walk_animation,
+            "death": death_animation,
         }
         self.current_animation = "idle"
 
@@ -62,6 +63,8 @@ class Enemy:
         self.x += self.speed * self.direction
 
     def update_animation(self):
+        if not self.is_life:
+            self.current_animation = "death"
         if self.speed != 0:
             self.current_animation = "walk"
         else:
@@ -104,7 +107,7 @@ class Player:
 
         idle_animation = Animation([pygame.image.load("textures/idle.png"), pygame.image.load("textures/idle.png")])
         walk_animation = Animation([pygame.image.load("textures/walk1.png"), pygame.image.load("textures/walk2.png"), pygame.image.load("textures/walk3.png")])
-        jump_animation = Animation([pygame.image.load("textures/jump.png")])
+        jump_animation = Animation([pygame.image.load("textures/jump.png",),pygame.image.load("textures/jump.png"),pygame.image.load("textures/jump.png")])
         self.animations = {
             "idle": idle_animation,
             "walk": walk_animation,
@@ -201,6 +204,7 @@ class Player:
     def respawn(self):
         self.x=50
         self.y=500
+        camera_x=self.x
     def debug_info(self):
         process = psutil.Process()
         cpu_percent = process.cpu_percent()
@@ -228,7 +232,7 @@ class Game:
         self.screen = pygame.display.set_mode((self.screen_width, self.screen_height))
         pygame.display.set_caption("Game")
 
-        self.player = Player((self.screen_width - 50) // 2, self.screen_height - 50, 50, 50, texture="textures/elweon.png")
+        self.player = Player(70 , 500 , 20, 50, texture="textures/elweon.png")
         self.blocks = []
 
         self.camera_x = 0
@@ -247,7 +251,8 @@ class Game:
             elif player.x > enemy.x + enemy.width / 2:
                 self.player.respawn()
             else:
-                print("b (colisión en la parte superior)")
+                enemy.current_animation = "death"
+                enemy.is_life=False
     
     def initialize_textures(self):
         self.textures = {}
@@ -286,9 +291,12 @@ class Game:
         running = True
         self.initialize_textures()
         self.set_background("textures/a.png")
+        enemy_list = []
 
-        enemy = Enemy(350, 500, 50, 50, 2)
-        
+        enemy = Enemy(450, 500, 50, 50, 2)
+        enemy2 = Enemy(350, 500, 50, 50, 2)
+        enemy_list.append(enemy2)
+        enemy_list.append(enemy)
         while running:
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
@@ -300,11 +308,13 @@ class Game:
             self.player.check_collision(self.blocks)
             self.player.move(keys)
             self.player.jump(keys)
-
-            enemy.move()
-            enemy.check_collision(self.blocks)
-            self.check_enemy_collision(self.player, enemy)
-            enemy.update_animation()
+            
+            for enemy in enemy_list:
+                if enemy.is_life:
+                    enemy.move()
+                    enemy.check_collision(self.blocks)
+                    enemy.update_animation()
+                    self.check_enemy_collision(self.player, enemy)
 
             if keys[pygame.K_a] or keys[pygame.K_d]:
                 self.player.current_animation = "walk"
@@ -313,6 +323,8 @@ class Game:
 
             if self.player.x > 395:
                 self.camera_x = self.player.x - self.screen_width // 2
+            else:
+                self.camera_x = self.player.x
 
             self.screen.fill(self.white)
 
@@ -322,8 +334,8 @@ class Game:
 
             self.player.update_animation()
             self.player.draw(self.screen, self.camera_x)
-
-            enemy.draw(self.screen, self.camera_x)
+            for enemy in enemy_list:
+                enemy.draw(self.screen, self.camera_x)  
 
             pygame.display.update()
 
