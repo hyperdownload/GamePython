@@ -221,7 +221,7 @@ class Block:
         self.texture = texture
         self.color = color
 
-        if not self.texture and not this.color:
+        if not self.texture and not self.color:
             self.color = (255, 0, 255)
 
 class Game:
@@ -323,8 +323,6 @@ class Game:
 
             if self.player.x > 395:
                 self.camera_x = self.player.x - self.screen_width // 2
-            else:
-                self.camera_x = self.player.x
 
             self.screen.fill(self.white)
 
