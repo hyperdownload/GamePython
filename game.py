@@ -59,12 +59,15 @@ class Game:
                         collidable = False
                     elif char == '1':
                         block_type = int(char)
-                        collidable = True
+                        block = Block(col * 50, row * 50, block_type, True, texture="textures/bricks.png", color=None)
+                        self.blocks.append(block)
+                    elif char == '3':
+                        block_type = int(char)
+                        block = Block(col * 50, row * 50, block_type, True, texture="textures/floor.png", color=None)
+                        self.blocks.append(block)
                     else:
                         block_type = int(char)
-                        collidable = False
-                    block = Block(col * 50, row * 50, block_type, collidable, texture="textures/b.png", color=None)
-                    self.blocks.append(block)
+                        block = Block(col * 50, row * 50, block_type, False, texture=None, color=None)
                     col += 1
                 row += 1
 
@@ -91,8 +94,8 @@ class Game:
             
             self.player.update(self.screen_height)
             self.player.check_collision(self.blocks)
-            self.player.move(keys)
             self.player.jump(keys)
+            self.player.move(keys)
             
             for enemy in enemy_list:
                 if enemy.is_life:
@@ -133,6 +136,13 @@ class Game:
     def draw_map(self):
         for block in self.blocks:
             if block.block_type == 1:
+                block_rect = pygame.Rect(block.x - self.camera_x, block.y, block.width, block.height)
+
+                if block.texture:
+                    self.screen.blit(self.textures[block.texture], block_rect)
+                else:
+                    pygame.draw.rect(self.screen, block.color, block_rect)
+            elif block.block_type == 3:
                 block_rect = pygame.Rect(block.x - self.camera_x, block.y, block.width, block.height)
 
                 if block.texture:

@@ -13,6 +13,8 @@ class Player:
         self.camera_x = 0
         self.is_jumping = False
         self.acceleration = 0.3
+        self.canMove_left = True
+        self.canMove_right = True
         
         self.texture = texture
         self.color = color
@@ -32,10 +34,10 @@ class Player:
 
     def move(self, keys):
         if keys[pygame.K_a]:
-            if self.x > 1:
+            if self.x > 1 and self.canMove_left:
                 self.x_speed -= self.acceleration
                 self.orientation = "left" 
-        elif keys[pygame.K_d]:
+        elif keys[pygame.K_d] and self.canMove_right:
             self.x_speed += self.acceleration
             self.orientation = "right" 
         else:
@@ -68,34 +70,42 @@ class Player:
 
     def check_collision(self, platforms):
         player_rect = pygame.Rect(self.x, self.y, self.width, self.height)
-        
-        broad_rect = player_rect.inflate(5, 5)  
+        broad_rect = player_rect.inflate(5, 5)
 
         for platform in platforms:
             if platform.collidable:
                 platform_rect = pygame.Rect(platform.x, platform.y, platform.width, platform.height)
-                
+
                 if broad_rect.colliderect(platform_rect):
                     if player_rect.colliderect(platform_rect):
                         dx = player_rect.centerx - platform_rect.centerx
                         dy = player_rect.centery - platform_rect.centery
+
                         if abs(dx) > abs(dy):
                             if dx > 0:
                                 self.x = platform_rect.right
                                 self.x_speed = 0
+                                self.canMove_left = False
                             else:
                                 self.x = platform_rect.left - self.width
                                 self.x_speed = 0
+                                self.canMove_right = False
                         else:
                             if dy > 0:
                                 self.y = platform_rect.bottom
-                                self.is_jumping = True
+                                self.is_jumping = False
                                 self.y_speed = 0
                             else:
                                 self.y = platform_rect.top - self.height
                                 self.is_jumping = False
                                 self.y_speed = 0
-                                
+
+        # Permitir el movimiento en la dirección opuesta si no hay colisión horizontal
+        if self.x_speed > 0 and self.canMove_right:
+            self.canMove_left = True
+        elif self.x_speed < 0 and self.canMove_left:
+            self.canMove_right = True
+
 
     def update_animation(self):
         if self.x_speed != 0:
