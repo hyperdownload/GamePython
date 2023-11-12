@@ -1,7 +1,8 @@
 import pygame
 import sys
+import time
 
-from interface import Interface
+from interface import *
 from sound_manager import SoundManager
 from animation import Animation
 from enemy import Enemy
@@ -13,6 +14,7 @@ class Game:
         self.screen_width = 800
         self.screen_height = 600
         self.screen = pygame.display.set_mode((self.screen_width, self.screen_height))
+        self.start_time = pygame.time.get_ticks() 
         pygame.display.set_caption("Game")
 
         self.player = Player(70 , 500 , 20, 50, texture="textures/elweon.png")
@@ -28,16 +30,22 @@ class Game:
         player_rect = pygame.Rect(player.x, player.y, player.width, player.height)
         enemy_rect = pygame.Rect(enemy.x, enemy.y, enemy.width, enemy.height)
 
+        enemy_top_zone = pygame.Rect(enemy.x, enemy.y, enemy.width, enemy.height * 0.25)
+
         if player_rect.colliderect(enemy_rect):
-            if player.x + player.width < enemy.x + enemy.width / 2:
+            if player.x + player.width < enemy.x + enemy.width / 2 and not self.player.y_speed>0:
                 self.player.respawn(self.camera_x)
-                self.camera_x = self.player.x -50
-            elif player.x > enemy.x + enemy.width / 2:
+                self.camera_x = self.player.x - 50
+            elif player.x > enemy.x + enemy.width / 2 and not self.player.y_speed>0:
                 self.player.respawn(self.camera_x)
-                self.camera_x = self.player.x -50
+                self.camera_x = self.player.x - 50
             else:
-                enemy.current_animation = "death"
-                enemy.is_life=False
+                if player_rect.colliderect(enemy_top_zone):
+                    enemy.current_animation = "death"
+                    enemy.is_life = False
+                    Interface.draw_text(self.screen, "+100", enemy.x - self.camera_x, enemy.y, 50, (255, 255, 255), duration=10)
+                    self.player.points += 100
+                
     
     def initialize_textures(self):
         self.textures = {}
@@ -80,12 +88,16 @@ class Game:
         self.initialize_textures()
         self.set_background("textures/a.png")
         enemy_list = []
-
+        chat=""
+        
         enemy = Enemy(450, 500, 50, 50, 2)
         enemy2 = Enemy(350, 500, 50, 50, 2)
         enemy_list.append(enemy2)
         enemy_list.append(enemy)
         while running:
+            current_time = pygame.time.get_ticks()  
+            elapsed_time = (current_time - self.start_time) / 1000 
+            chat = f"Tiempo: {round(elapsed_time)} segundos"
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     running = False
@@ -96,13 +108,6 @@ class Game:
             self.player.check_collision(self.blocks)
             self.player.jump(keys)
             self.player.move(keys)
-            
-            for enemy in enemy_list:
-                if enemy.is_life:
-                    enemy.move()
-                    enemy.check_collision(self.blocks)
-                    enemy.update_animation()
-                    self.check_enemy_collision(self.player, enemy)
 
             if keys[pygame.K_a] or keys[pygame.K_d]:
                 self.player.current_animation = "walk"
@@ -115,7 +120,15 @@ class Game:
             self.screen.fill(self.white)
 
             self.screen.blit(self.background, (0, 0))
-
+            
+            Interface.draw_text(self.screen, f"{chat}", 50,25 , 30, (255, 255, 255))
+            Interface.draw_text(self.screen, f"Player - X: {round(self.player.x)}, Y: {round(self.player.y)}, X Speed: {round(self.player.x_speed)}, Y Speed: {round(self.player.y_speed)}", 50, 10, 20,color=(0,0,0))
+            for enemy in enemy_list:
+                if enemy.is_life:
+                    enemy.move()
+                    enemy.check_collision(self.blocks)
+                    enemy.update_animation()
+                    self.check_enemy_collision(self.player, enemy)
             self.draw_map()
 
             self.player.update_animation()

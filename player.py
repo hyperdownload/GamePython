@@ -15,6 +15,7 @@ class Player:
         self.acceleration = 0.3
         self.canMove_left = True
         self.canMove_right = True
+        self.points = 0
         
         self.texture = texture
         self.color = color
@@ -58,7 +59,6 @@ class Player:
             if keys[pygame.K_SPACE]:
                 self.y_speed = -15
                 self.is_jumping = True
-
     def update(self, screen_height):
         self.y_speed += 1
         self.y += self.y_speed
@@ -93,19 +93,15 @@ class Player:
                         else:
                             if dy > 0:
                                 self.y = platform_rect.bottom
-                                self.is_jumping = False
                                 self.y_speed = 0
                             else:
                                 self.y = platform_rect.top - self.height
                                 self.is_jumping = False
                                 self.y_speed = 0
-
-        # Permitir el movimiento en la dirección opuesta si no hay colisión horizontal
-        if self.x_speed > 0 and self.canMove_right:
-            self.canMove_left = True
-        elif self.x_speed < 0 and self.canMove_left:
-            self.canMove_right = True
-
+            if self.x_speed > 0 and self.canMove_right:
+                self.canMove_left = True
+            elif self.x_speed < 0 and self.canMove_left:
+                self.canMove_right = True
 
     def update_animation(self):
         if self.x_speed != 0:
@@ -133,4 +129,4 @@ class Player:
         process = psutil.Process()
         cpu_percent = process.cpu_percent()
         memory_percent = process.memory_percent()
-        print(f"Player - X: {round(self.x)}, Y: {round(self.y)}, X Speed: {round(self.x_speed)}, Y Speed: {round(self.y_speed)} / CPU Usage: {cpu_percent}%  Memory Usage: {round(memory_percent)}% {self.is_jumping}", end="\r")
+        #print(f"Player - X: {round(self.x)}, Y: {round(self.y)}, X Speed: {round(self.x_speed)}, Y Speed: {round(self.y_speed)} / CPU Usage: {cpu_percent}%  Memory Usage: {round(memory_percent)}% {self.is_jumping}", end="\r")

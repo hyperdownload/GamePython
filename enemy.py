@@ -15,9 +15,9 @@ class Enemy:
 
         if not self.texture and not self.color:
             self.color = (255, 0, 0) 
-        death_animation = Animation([pygame.image.load("textures/a.png"), pygame.image.load("textures/a.png")])
+        death_animation = Animation([pygame.image.load("textures/enemy_die.png"), pygame.image.load("textures/enemy_die.png")])
         idle_animation = Animation([pygame.image.load("textures/a.png"), pygame.image.load("textures/a.png")])
-        walk_animation = Animation([pygame.image.load("textures/elweon.png"), pygame.image.load("textures/elweon.png")])
+        walk_animation = Animation([pygame.image.load("textures/enemy_1.png"), pygame.image.load("textures/enemy_2.png")])
 
         self.animations = {
             "idle": idle_animation,
