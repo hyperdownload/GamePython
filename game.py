@@ -19,12 +19,19 @@ class Game:
 
         self.player = Player(70 , 500 , 20, 50, texture="textures/elweon.png")
         self.blocks = []
+        self.enemy_list = []
 
         self.camera_x = 0
         self.white = (255, 255, 255)
         self.clock = pygame.time.Clock()
 
         self.sound = SoundManager()  
+        
+        self.background_images = [
+            pygame.image.load("textures/background/background_layer1.png").convert(),
+            pygame.image.load("textures/background/background_layer2.png").convert()
+        ]
+        self.layer_speeds = [1, 2]
         
     def check_enemy_collision(self, player, enemy):
         player_rect = pygame.Rect(player.x, player.y, player.width, player.height)
@@ -34,10 +41,12 @@ class Game:
 
         if player_rect.colliderect(enemy_rect):
             if player.x + player.width < enemy.x + enemy.width / 2 and not self.player.y_speed>0:
-                self.player.respawn(self.camera_x)
+                self.player.death()
+                self.player.respawn(self.camera_x, self.enemy_list)
                 self.camera_x = self.player.x - 50
             elif player.x > enemy.x + enemy.width / 2 and not self.player.y_speed>0:
-                self.player.respawn(self.camera_x)
+                self.player.death()
+                self.player.respawn(self.camera_x, self.enemy_list)
                 self.camera_x = self.player.x - 50
             else:
                 if player_rect.colliderect(enemy_top_zone):
@@ -45,7 +54,6 @@ class Game:
                     enemy.is_life = False
                     Interface.draw_text(self.screen, "+100", enemy.x - self.camera_x, enemy.y, 50, (255, 255, 255), duration=10)
                     self.player.points += 100
-                
     
     def initialize_textures(self):
         self.textures = {}
@@ -67,15 +75,19 @@ class Game:
                         collidable = False
                     elif char == '1':
                         block_type = int(char)
-                        block = Block(col * 50, row * 50, block_type, True, texture="textures/bricks.png", color=None)
+                        block = Block(col * 50, row * 50, block_type, True, texture="textures/bricks.png", color=None, kill=False)
+                        self.blocks.append(block)
+                    elif char == '2':
+                        block_type = int(char)
+                        block = Block(col * 50, row * 50, block_type, True, texture=None, color=None, kill=True)
                         self.blocks.append(block)
                     elif char == '3':
                         block_type = int(char)
-                        block = Block(col * 50, row * 50, block_type, True, texture="textures/floor.png", color=None)
+                        block = Block(col * 50, row * 50, block_type, True, texture="textures/floor.png", color=None, kill=False)
                         self.blocks.append(block)
                     else:
                         block_type = int(char)
-                        block = Block(col * 50, row * 50, block_type, False, texture=None, color=None)
+                        block = Block(col * 50, row * 50, block_type, False, texture=None, color=None, kill=False)
                     col += 1
                 row += 1
 
@@ -86,18 +98,15 @@ class Game:
     def run(self):
         running = True
         self.initialize_textures()
-        self.set_background("textures/a.png")
-        enemy_list = []
+        self.set_background("textures/background/background_layer1.png")
         chat=""
-        
-        enemy = Enemy(450, 500, 50, 50, 2)
-        enemy2 = Enemy(350, 500, 50, 50, 2)
-        enemy_list.append(enemy2)
-        enemy_list.append(enemy)
+        for i in (Enemy(450, 500, 50, 50, 2),Enemy(550, 500, 50, 50, 2),Enemy(1000, 500, 50, 50, 2),Enemy(1050, 500, 50, 50, 2),Enemy(1100, 500, 50, 50, 2),
+                  Enemy(4000, 500, 50, 50, 2),Enemy(4050, 500, 50, 50, 2),Enemy(4100, 500, 50, 50, 2)):
+            self.enemy_list.append(i)
         while running:
             current_time = pygame.time.get_ticks()  
             elapsed_time = (current_time - self.start_time) / 1000 
-            chat = f"Tiempo: {round(elapsed_time)} segundos"
+            chat = f"Tiempo: {round(elapsed_time)} segundos, Puntaje: {self.player.points}"
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     running = False
@@ -105,9 +114,13 @@ class Game:
             keys = pygame.key.get_pressed()
             
             self.player.update(self.screen_height)
+            if self.player.block_murder(platforms=self.blocks):
+                self.player.death()
+                self.player.respawn(self.camera_x, self.enemy_list)
+                self.camera_x = self.player.x - 50
+            self.player.move(keys)
             self.player.check_collision(self.blocks)
             self.player.jump(keys)
-            self.player.move(keys)
 
             if keys[pygame.K_a] or keys[pygame.K_d]:
                 self.player.current_animation = "walk"
@@ -121,9 +134,9 @@ class Game:
 
             self.screen.blit(self.background, (0, 0))
             
-            Interface.draw_text(self.screen, f"{chat}", 50,25 , 30, (255, 255, 255))
-            Interface.draw_text(self.screen, f"Player - X: {round(self.player.x)}, Y: {round(self.player.y)}, X Speed: {round(self.player.x_speed)}, Y Speed: {round(self.player.y_speed)}", 50, 10, 20,color=(0,0,0))
-            for enemy in enemy_list:
+            Interface.draw_text(self.screen, f"{chat}", 155,25 , 30, (0, 0, 0))
+            Interface.draw_text(self.screen, f"Player - X: {round(self.player.x)}, Y: {round(self.player.y)}, X Speed: {round(self.player.x_speed)}, Y Speed: {round(self.player.y_speed)}, Camera:{self.player.camera_x}", 125, 10, 20,color=(0,0,0))
+            for enemy in self.enemy_list:
                 if enemy.is_life:
                     enemy.move()
                     enemy.check_collision(self.blocks)
@@ -133,9 +146,8 @@ class Game:
 
             self.player.update_animation()
             self.player.draw(self.screen, self.camera_x)
-            for enemy in enemy_list:
+            for enemy in self.enemy_list:
                 enemy.draw(self.screen, self.camera_x)  
-
             pygame.display.update()
 
             self.player.debug_info()
@@ -150,7 +162,6 @@ class Game:
         for block in self.blocks:
             if block.block_type == 1:
                 block_rect = pygame.Rect(block.x - self.camera_x, block.y, block.width, block.height)
-
                 if block.texture:
                     self.screen.blit(self.textures[block.texture], block_rect)
                 else:

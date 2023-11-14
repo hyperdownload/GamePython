@@ -1,5 +1,5 @@
 class Block:
-    def __init__(self, x, y, block_type, collidable, texture=None, color=None):
+    def __init__(self, x, y, block_type, collidable,kill=None, texture=None, color=None):
         self.x = x
         self.y = y
         self.collidable = collidable
@@ -8,6 +8,8 @@ class Block:
         self.height = 50
         self.texture = texture
         self.color = color
-
+        self.morido = kill
+        if not self.morido:
+            self.morido = False
         if not self.texture and not self.color:
             self.color = (255, 0, 255)
