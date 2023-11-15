@@ -8,6 +8,7 @@ from animation import Animation
 from enemy import Enemy
 from player import Player
 from block import Block
+from static_enemy import *
 class Game:
     def __init__(self):
         pygame.init()
@@ -20,6 +21,7 @@ class Game:
         self.player = Player(70 , 500 , 20, 50, texture="textures/elweon.png")
         self.blocks = []
         self.enemy_list = []
+        self.staticEnemy_list = []
 
         self.camera_x = 0
         self.white = (255, 255, 255)
@@ -50,6 +52,7 @@ class Game:
                 self.camera_x = self.player.x - 50
             else:
                 if player_rect.colliderect(enemy_top_zone):
+                    self.player.y_speed = -15
                     enemy.current_animation = "death"
                     enemy.is_life = False
                     Interface.draw_text(self.screen, "+100", enemy.x - self.camera_x, enemy.y, 50, (255, 255, 255), duration=10)
@@ -103,10 +106,12 @@ class Game:
         for i in (Enemy(450, 500, 50, 50, 2),Enemy(550, 500, 50, 50, 2),Enemy(1000, 500, 50, 50, 2),Enemy(1050, 500, 50, 50, 2),Enemy(1100, 500, 50, 50, 2),
                   Enemy(4000, 500, 50, 50, 2),Enemy(4050, 500, 50, 50, 2),Enemy(4100, 500, 50, 50, 2)):
             self.enemy_list.append(i)
+        #for x in (Staticenemy(450, 500, 50, 50, 2, 50),Staticenemy(4100, 500, 50, 50, 2, 2)):
+            #self.staticEnemy_list.append(x)
         while running:
             current_time = pygame.time.get_ticks()  
             elapsed_time = (current_time - self.start_time) / 1000 
-            chat = f"Tiempo: {round(elapsed_time)} segundos, Puntaje: {self.player.points}"
+            chat = f"Tiempo: {round(elapsed_time)} segundos, Puntaje: {self.player.points}, Vidas: {self.player.lifes}"
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     running = False
@@ -134,14 +139,17 @@ class Game:
 
             self.screen.blit(self.background, (0, 0))
             
-            Interface.draw_text(self.screen, f"{chat}", 155,25 , 30, (0, 0, 0))
-            Interface.draw_text(self.screen, f"Player - X: {round(self.player.x)}, Y: {round(self.player.y)}, X Speed: {round(self.player.x_speed)}, Y Speed: {round(self.player.y_speed)}, Camera:{self.player.camera_x}", 125, 10, 20,color=(0,0,0))
+            Interface.draw_text(self.screen, f"{chat}", 210,25 , 30, (0, 0, 0))
+            #Interface.draw_text(self.screen, f"Player - X: {round(self.player.x)}, Y: {round(self.player.y)}, X Speed: {round(self.player.x_speed)}, Y Speed: {round(self.player.y_speed)}, Camera:{self.player.camera_x}", 125, 10, 20,color=(0,0,0))
             for enemy in self.enemy_list:
                 if enemy.is_life:
                     enemy.move()
                     enemy.check_collision(self.blocks)
                     enemy.update_animation()
                     self.check_enemy_collision(self.player, enemy)
+            for enemyStatic in self.staticEnemy_list:
+                enemyStatic.move()
+                enemyStatic.draw(self.screen,self.camera_x)
             self.draw_map()
 
             self.player.update_animation()

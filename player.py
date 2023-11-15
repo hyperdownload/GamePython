@@ -16,6 +16,7 @@ class Player:
         self.canMove_left = True
         self.canMove_right = True
         self.points = 0
+        self.lifes = 3
         
         self.CollisionLeft=True
         self.CollisionRight=True
@@ -87,12 +88,10 @@ class Player:
                                 self.x = platform_rect.right
                                 self.x_speed = 0
                                 self.canMove_left = False
-                                print("A")
                             else:
                                 self.x = platform_rect.left - self.width
                                 self.x_speed = 0
                                 self.canMove_right = False
-                                print("B")
                         else:
                             if dy > 0:
                                 self.y = platform_rect.bottom
@@ -140,6 +139,9 @@ class Player:
         screen.blit(player_texture, player_rect)
 
     def respawn(self, camera_x, enemys):
+        self.lifes-=1
+        if self.lifes == 0:
+            self.points=0
         self.current_animation = "death"
         self.x=50
         self.y=500
