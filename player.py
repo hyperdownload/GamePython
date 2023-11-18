@@ -1,6 +1,7 @@
 import pygame
 import psutil
 from animation import Animation
+from Tools import *
 
 class Player:
     def __init__(self, x, y, width, height, texture=None, color=None):
@@ -75,7 +76,7 @@ class Player:
         player_rect = pygame.Rect(self.x, self.y, self.width, self.height)
         broad_rect = player_rect.inflate(5, 5)
         for platform in platforms:
-            if platform.collidable:
+            if platform.collidable and canView(self.x, self.y, platform.x, platform.y, 800, 600):
                 platform_rect = pygame.Rect(platform.x, platform.y, platform.width, platform.height)
 
                 if broad_rect.colliderect(platform_rect):

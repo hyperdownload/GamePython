@@ -1,6 +1,7 @@
 import pygame
 import sys
 import time
+import numpy as np
 
 from interface import *
 from sound_manager import SoundManager
@@ -34,7 +35,9 @@ class Game:
             pygame.image.load("textures/background/background_layer2.png").convert()
         ]
         self.layer_speeds = [1, 2]
-        
+    def canView(self,x1,x2,y1,y2,screen_width, screen_height):
+        distance = np.sqrt((np.abs(x2 - x1))**2 + (np.abs(y2 - y1))**2)
+        return distance <= x1 + screen_width + screen_height
     def check_enemy_collision(self, player, enemy):
         player_rect = pygame.Rect(player.x, player.y, player.width, player.height)
         enemy_rect = pygame.Rect(enemy.x, enemy.y, enemy.width, enemy.height)
@@ -111,7 +114,7 @@ class Game:
         while running:
             current_time = pygame.time.get_ticks()  
             elapsed_time = (current_time - self.start_time) / 1000 
-            chat = f"Tiempo: {round(elapsed_time)} segundos, Puntaje: {self.player.points}, Vidas: {self.player.lifes}"
+            chat = f"Tiempo: {round(elapsed_time)} segundos, Puntaje: {self.player.points}, Vidas: {self.player.lifes},(FPS: {self.clock})"
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     running = False
@@ -143,24 +146,27 @@ class Game:
             #Interface.draw_text(self.screen, f"Player - X: {round(self.player.x)}, Y: {round(self.player.y)}, X Speed: {round(self.player.x_speed)}, Y Speed: {round(self.player.y_speed)}, Camera:{self.player.camera_x}", 125, 10, 20,color=(0,0,0))
             for enemy in self.enemy_list:
                 if enemy.is_life:
-                    enemy.move()
-                    enemy.check_collision(self.blocks)
-                    enemy.update_animation()
-                    self.check_enemy_collision(self.player, enemy)
+                    if self.canView(enemy.x,enemy.y,self.player.x, self.player.y,self.screen_width, self.screen_height):
+                        enemy.move()
+                        enemy.check_collision(self.blocks)
+                        enemy.update_animation()
+                        self.check_enemy_collision(self.player, enemy)
             for enemyStatic in self.staticEnemy_list:
-                enemyStatic.move()
-                enemyStatic.draw(self.screen,self.camera_x)
+                if self.canView(self.player.x, self.player.y,enemy.x,enemy.y, self.screen_width, self.screen_height):
+                    enemyStatic.move()
+                    enemyStatic.draw(self.screen,self.camera_x)
             self.draw_map()
 
             self.player.update_animation()
             self.player.draw(self.screen, self.camera_x)
             for enemy in self.enemy_list:
-                enemy.draw(self.screen, self.camera_x)  
+                if self.canView(self.player.x, self.player.y,enemy.x, enemy.y, self.screen_width,self.screen_height ):
+                    enemy.draw(self.screen, self.camera_x)  
             pygame.display.update()
 
             self.player.debug_info()
 
-            self.clock.tick(60)
+            self.clock.tick(0)
 
         pygame.quit()
         sys.exit()
@@ -168,19 +174,20 @@ class Game:
 
     def draw_map(self):
         for block in self.blocks:
-            if block.block_type == 1:
-                block_rect = pygame.Rect(block.x - self.camera_x, block.y, block.width, block.height)
-                if block.texture:
-                    self.screen.blit(self.textures[block.texture], block_rect)
-                else:
-                    pygame.draw.rect(self.screen, block.color, block_rect)
-            elif block.block_type == 3:
-                block_rect = pygame.Rect(block.x - self.camera_x, block.y, block.width, block.height)
+            if self.canView(self.player.x, self.player.y,block.x,block.y, self.screen_width, self.screen_height):
+                if block.block_type == 1:
+                    block_rect = pygame.Rect(block.x - self.camera_x, block.y, block.width, block.height)
+                    if block.texture:
+                        self.screen.blit(self.textures[block.texture], block_rect)
+                    else:
+                        pygame.draw.rect(self.screen, block.color, block_rect)
+                elif block.block_type == 3:
+                    block_rect = pygame.Rect(block.x - self.camera_x, block.y, block.width, block.height)
 
-                if block.texture:
-                    self.screen.blit(self.textures[block.texture], block_rect)
-                else:
-                    pygame.draw.rect(self.screen, block.color, block_rect)
+                    if block.texture:
+                        self.screen.blit(self.textures[block.texture], block_rect)
+                    else:
+                        pygame.draw.rect(self.screen, block.color, block_rect)
 
 if __name__ == "__main__":
     game = Game()
