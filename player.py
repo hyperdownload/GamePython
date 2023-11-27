@@ -72,11 +72,16 @@ class Player:
         self.y_speed += 1
         self.y += self.y_speed
 
-    def check_collision(self, platforms):
+    def check_collision(self, platforms, screen_width):
         player_rect = pygame.Rect(self.x, self.y, self.width, self.height)
         broad_rect = player_rect.inflate(5, 5)
+        chunk_size = 50
+
+        start_index = max(0, int(self.camera_x / 50) - chunk_size)
+        end_index = min(len(platforms), int((self.camera_x + screen_width) / 50) + chunk_size)
+
         for platform in platforms:
-            if platform.collidable and canView(self.x, self.y, platform.x, platform.y, 800, 600):
+            if platform.collidable:
                 platform_rect = pygame.Rect(platform.x, platform.y, platform.width, platform.height)
 
                 if broad_rect.colliderect(platform_rect):
@@ -108,19 +113,21 @@ class Player:
     def death(self):
         self.current_animation = "death"
         
-    def block_murder(self, platforms):
+    def block_murder(self, platforms, screen_width):
+        chunk_size = 50
+
+        start_index = max(0, int(self.camera_x / 50) - chunk_size)
+        end_index = min(len(platforms), int((self.camera_x + screen_width) / 50) + chunk_size)
+
         player_rect = pygame.Rect(self.x, self.y, self.width, self.height)
         broad_rect = player_rect.inflate(5, 5)
-        for platform in platforms:
-            if platform.collidable:
-                platform_rect = pygame.Rect(platform.x, platform.y, platform.width, platform.height)
 
-                if broad_rect.colliderect(platform_rect):
-                    if player_rect.colliderect(platform_rect):
-                        if platform.morido:
-                            self.camera_x = self.x - 50
-                            return True
-                        return False
+        for platform in platforms[start_index:end_index]:
+            if platform.collidable and platform.morido and broad_rect.colliderect(platform.rect):
+                self.camera_x = self.x - 50
+                return True
+        return False
+
     def update_animation(self):
         if self.x_speed != 0:
             self.current_animation = "walk"
@@ -150,7 +157,5 @@ class Player:
             enemy.is_life=True
         camera_x=self.x
     def debug_info(self):
-        process = psutil.Process()
-        cpu_percent = process.cpu_percent()
-        memory_percent = process.memory_percent()
+        pass
         #print(f"Player - X: {round(self.x)}, Y: {round(self.y)}, X Speed: {round(self.x_speed)}, Y Speed: {round(self.y_speed)} / CPU Usage: {cpu_percent}%  Memory Usage: {round(memory_percent)}% {self.is_jumping}", end="\r")

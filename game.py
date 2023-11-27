@@ -39,27 +39,27 @@ class Game:
         distance = np.sqrt((np.abs(x2 - x1))**2 + (np.abs(y2 - y1))**2)
         return distance <= x1 + screen_width + screen_height
     def check_enemy_collision(self, player, enemy):
-        player_rect = pygame.Rect(player.x, player.y, player.width, player.height)
-        enemy_rect = pygame.Rect(enemy.x, enemy.y, enemy.width, enemy.height)
+            player_rect = pygame.Rect(player.x, player.y, player.width, player.height)
+            enemy_rect = pygame.Rect(enemy.x, enemy.y, enemy.width, enemy.height)
 
-        enemy_top_zone = pygame.Rect(enemy.x, enemy.y, enemy.width, enemy.height * 0.25)
+            enemy_top_zone = pygame.Rect(enemy.x, enemy.y, enemy.width, enemy.height * 0.25)
 
-        if player_rect.colliderect(enemy_rect):
-            if player.x + player.width < enemy.x + enemy.width / 2 and not self.player.y_speed>0:
-                self.player.death()
-                self.player.respawn(self.camera_x, self.enemy_list)
-                self.camera_x = self.player.x - 50
-            elif player.x > enemy.x + enemy.width / 2 and not self.player.y_speed>0:
-                self.player.death()
-                self.player.respawn(self.camera_x, self.enemy_list)
-                self.camera_x = self.player.x - 50
-            else:
-                if player_rect.colliderect(enemy_top_zone):
-                    self.player.y_speed = -15
-                    enemy.current_animation = "death"
-                    enemy.is_life = False
-                    Interface.draw_text(self.screen, "+100", enemy.x - self.camera_x, enemy.y, 50, (255, 255, 255), duration=10)
-                    self.player.points += 100
+            if player_rect.colliderect(enemy_rect):
+                if player.x + player.width < enemy.x + enemy.width / 2 and not self.player.y_speed>0:
+                    self.player.death()
+                    self.player.respawn(self.camera_x, self.enemy_list)
+                    self.camera_x = self.player.x - 50
+                elif player.x > enemy.x + enemy.width / 2 and not self.player.y_speed>0:
+                    self.player.death()
+                    self.player.respawn(self.camera_x, self.enemy_list)
+                    self.camera_x = self.player.x - 50
+                else:
+                    if player_rect.colliderect(enemy_top_zone):
+                        self.player.y_speed = -15
+                        enemy.current_animation = "death"
+                        enemy.is_life = False
+                        Interface.draw_text(self.screen, "+100", enemy.x - self.camera_x, enemy.y, 50, (255, 255, 255), duration=10)
+                        self.player.points += 100
     
     def initialize_textures(self):
         self.textures = {}
@@ -111,6 +111,7 @@ class Game:
             self.enemy_list.append(i)
         #for x in (Staticenemy(450, 500, 50, 50, 2, 50),Staticenemy(4100, 500, 50, 50, 2, 2)):
             #self.staticEnemy_list.append(x)
+        print(len(self.blocks)) 
         while running:
             current_time = pygame.time.get_ticks()  
             elapsed_time = (current_time - self.start_time) / 1000 
@@ -122,12 +123,12 @@ class Game:
             keys = pygame.key.get_pressed()
             
             self.player.update(self.screen_height)
-            if self.player.block_murder(platforms=self.blocks):
+            if self.player.block_murder(platforms=self.blocks, screen_width=self.screen_width):
                 self.player.death()
                 self.player.respawn(self.camera_x, self.enemy_list)
                 self.camera_x = self.player.x - 50
             self.player.move(keys)
-            self.player.check_collision(self.blocks)
+            self.player.check_collision(self.blocks,self.screen_width)
             self.player.jump(keys)
 
             if keys[pygame.K_a] or keys[pygame.K_d]:
@@ -143,24 +144,22 @@ class Game:
             self.screen.blit(self.background, (0, 0))
             
             Interface.draw_text(self.screen, f"{chat}", 210,25 , 30, (0, 0, 0))
-            #Interface.draw_text(self.screen, f"Player - X: {round(self.player.x)}, Y: {round(self.player.y)}, X Speed: {round(self.player.x_speed)}, Y Speed: {round(self.player.y_speed)}, Camera:{self.player.camera_x}", 125, 10, 20,color=(0,0,0))
+            Interface.draw_text(self.screen, f"Player - X: {round(self.player.x)}, Y: {round(self.player.y)}, X Speed: {round(self.player.x_speed)}, Y Speed: {round(self.player.y_speed)}, Camera:{self.player.camera_x}", 125, 10, 20,color=(0,0,0))
             for enemy in self.enemy_list:
                 if enemy.is_life:
-                    if self.canView(enemy.x,enemy.y,self.player.x, self.player.y,self.screen_width, self.screen_height):
                         enemy.move()
                         enemy.check_collision(self.blocks)
                         enemy.update_animation()
                         self.check_enemy_collision(self.player, enemy)
-            for enemyStatic in self.staticEnemy_list:
-                if self.canView(self.player.x, self.player.y,enemy.x,enemy.y, self.screen_width, self.screen_height):
-                    enemyStatic.move()
-                    enemyStatic.draw(self.screen,self.camera_x)
+            #for enemyStatic in self.staticEnemy_list:
+                #if self.canView(self.player.x, self.player.y,enemy.x,enemy.y, self.screen_width, self.screen_height):
+                    #enemyStatic.move()
+                    #enemyStatic.draw(self.screen,self.camera_x)
             self.draw_map()
 
             self.player.update_animation()
             self.player.draw(self.screen, self.camera_x)
             for enemy in self.enemy_list:
-                if self.canView(self.player.x, self.player.y,enemy.x, enemy.y, self.screen_width,self.screen_height ):
                     enemy.draw(self.screen, self.camera_x)  
             pygame.display.update()
 
@@ -171,19 +170,20 @@ class Game:
         pygame.quit()
         sys.exit()
 
-
     def draw_map(self):
-        for block in self.blocks:
-            if self.canView(self.player.x, self.player.y,block.x,block.y, self.screen_width, self.screen_height):
+        chunk_size = 50
+
+        start_index = max(0, int(self.camera_x / 50) - chunk_size)
+        end_index = min(len(self.blocks), int((self.camera_x + self.screen_width) / 50) + chunk_size)
+
+        for block in self.blocks[start_index:end_index]:
+                block_rect = pygame.Rect(block.x - self.camera_x, block.y, block.width, block.height)
                 if block.block_type == 1:
-                    block_rect = pygame.Rect(block.x - self.camera_x, block.y, block.width, block.height)
                     if block.texture:
                         self.screen.blit(self.textures[block.texture], block_rect)
                     else:
                         pygame.draw.rect(self.screen, block.color, block_rect)
                 elif block.block_type == 3:
-                    block_rect = pygame.Rect(block.x - self.camera_x, block.y, block.width, block.height)
-
                     if block.texture:
                         self.screen.blit(self.textures[block.texture], block_rect)
                     else:
