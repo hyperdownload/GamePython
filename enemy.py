@@ -39,11 +39,15 @@ class Enemy:
 
         self.animations[self.current_animation].update()
 
-    def draw(self, screen, camera_x):
+    def draw(self, screen, camera):
         enemy_texture = self.animations[self.current_animation].current_frame()
         enemy_texture = pygame.transform.scale(enemy_texture, (self.width, self.height))
-        enemy_rect = pygame.Rect(self.x - camera_x, self.y, self.width, self.height)
+
+        # Utiliza el método apply de la cámara para obtener la posición ajustada
+        enemy_rect = camera.apply(pygame.Rect(self.x, self.y, self.width, self.height))
+        
         screen.blit(enemy_texture, enemy_rect)
+
 
     def check_collision(self, platforms):
         enemy_rect = pygame.Rect(self.x, self.y, self.width, self.height)

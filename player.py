@@ -138,13 +138,17 @@ class Player:
 
         self.animations[self.current_animation].update()
 
-    def draw(self, screen, camera_x):
+    def draw(self, screen, camera):
         player_texture = self.animations[self.current_animation].current_frame()
         if self.orientation == "left":
             player_texture = pygame.transform.flip(player_texture, True, False)
         player_texture = pygame.transform.scale(player_texture, (self.width, self.height))
-        player_rect = pygame.Rect(self.x - camera_x, self.y, self.width, self.height)
+
+        # Utiliza el método apply de la cámara para obtener la posición ajustada
+        player_rect = camera.apply(pygame.Rect(self.x, self.y, self.width, self.height))
+        
         screen.blit(player_texture, player_rect)
+
 
     def respawn(self, camera_x, enemys):
         self.lifes-=1

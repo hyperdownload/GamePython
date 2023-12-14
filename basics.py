@@ -16,7 +16,6 @@ class Debug:
     def draw_debug_circle(screen, particle, color=(255, 255, 255), thickness=1):
         pygame.draw.circle(screen, color, (int(particle.x), int(particle.y)), particle.radius, thickness)
 
-    # Diccionario para almacenar los tiempos de ejecución de las funciones
     execution_times = {}
 
     def timeit(func):
@@ -33,7 +32,6 @@ class Debug:
 
         return wrapper
 
-    # Esta función imprimirá las estadísticas al presionar F3
     def show_statistics():
         if execution_times:
             print("Estadísticas de tiempo de ejecución:")
@@ -42,13 +40,11 @@ class Debug:
         else:
             print("No hay funciones registradas.")
 
-    # Función para resetear las estadísticas
     def reset_statistics():
         global execution_times
         execution_times = {}
         print("Estadísticas reseteadas.")
 
-    # Presiona F3 para mostrar las estadísticas
     def on_f3_press():
         show_statistics()
 class UIElement:
@@ -65,7 +61,7 @@ class TextBlock(UIElement):
         self.font_size = font_size
         self.font_color = font_color
         self.max_chars = max_chars
-        self.draw_background = draw_background  # Nuevo parámetro
+        self.draw_background = draw_background  
         self.font = pygame.font.Font(None, self.font_size)
         self.lines = []
         self.images = []
@@ -126,7 +122,7 @@ class Camera:
         self.x = 0
         self.y = 0
         self.zoom = 1.0
-        self.target = None  
+        self.target = None
 
     def set_target(self, target):
         self.target = target
@@ -137,4 +133,39 @@ class Camera:
             self.y = self.target.rect.centery - self.height / 2
 
     def apply(self, rect):
-        return pygame.Rect(rect.x * self.zoom - self.x, rect.y * self.zoom - self.y, rect.width * self.zoom, rect.height * self.zoom)
+        scaled_x = (rect.x - self.x) * self.zoom
+        scaled_y = (rect.y - self.y) * self.zoom
+
+        return pygame.Rect(scaled_x, scaled_y, rect.width * self.zoom, rect.height * self.zoom)
+
+    def handle_event(self, event):
+        if event.type == pygame.MOUSEBUTTONDOWN and event.button == 4:  
+            self.zoom *= 1.1
+        elif event.type == pygame.MOUSEBUTTONDOWN and event.button == 5: 
+            self.zoom /= 1.1
+
+class FreeCamera(Camera):
+    def update(self):
+        keys = pygame.key.get_pressed()
+        speed = 5
+
+        if keys[pygame.K_LEFT]:
+            self.x -= speed
+        if keys[pygame.K_RIGHT]:
+            self.x += speed
+        if keys[pygame.K_UP]:
+            self.y -= speed
+        if keys[pygame.K_DOWN]:
+            self.y += speed
+
+
+        for event in pygame.event.get():
+            if event.type == pygame.MOUSEBUTTONDOWN and event.button == 4:  
+                self.zoom *= 1.1
+            elif event.type == pygame.MOUSEBUTTONDOWN and event.button == 5:  
+                self.zoom /= 1.1
+    def apply(self, rect):
+        scaled_x = (rect.x - self.x) * self.zoom
+        scaled_y = (rect.y - self.y) * self.zoom
+
+        return pygame.Rect(scaled_x, scaled_y, rect.width * self.zoom, rect.height * self.zoom)
