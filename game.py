@@ -216,7 +216,7 @@ class Game:
 
         pygame.quit()
         sys.exit()
-
+    #as
     def draw_map(self):
         chunk_size = 40
 
