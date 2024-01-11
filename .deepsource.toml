@@ -5,3 +5,5 @@ name = "python"
 
   [analyzers.meta]
   runtime_version = "3.x.x"
+  [analyzers.options]
+  ignore_missing_docstrings = true
