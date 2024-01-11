@@ -1,5 +1,6 @@
 import pygame
 from animation import Animation
+
 class Enemy:
     def __init__(self, x, y, width, height, speed, texture=None, color=None):
         self.x = x

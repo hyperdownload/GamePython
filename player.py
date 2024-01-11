@@ -60,7 +60,7 @@ class Player:
         self.x_speed = max(min(self.x_speed, max_speed), -max_speed)
 
         self.x += self.x_speed
-
+    
     def jump(self, keys):
         if not self.is_jumping:
             if keys[pygame.K_SPACE]:
@@ -159,7 +159,9 @@ class Player:
         self.y=500
         for enemy in enemys:
             enemy.is_life=True
-        camera_x=self.x
+        self.camera_x=self.x
     def debug_info(self):
         pass
         #print(f"Player - X: {round(self.x)}, Y: {round(self.y)}, X Speed: {round(self.x_speed)}, Y Speed: {round(self.y_speed)} / CPU Usage: {cpu_percent}%  Memory Usage: {round(memory_percent)}% {self.is_jumping}", end="\r")
+    def get_rect(self):
+        return pygame.Rect(self.x, self.y, self.width, self.height)

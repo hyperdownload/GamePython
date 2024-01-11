@@ -1,5 +1,6 @@
 import pygame
 import sys
+from Tools import canView
 from interface import *
 from sound_manager import SoundManager
 from animation import Animation
@@ -16,10 +17,14 @@ class Game:
         pygame.init()
         self.screen_width = 800
         self.screen_height = 600
+        self.width = self.screen_width
+        self.height = self.screen_height
         self.screen = pygame.display.set_mode((self.screen_width, self.screen_height))
         self.start_time = pygame.time.get_ticks()
         pygame.display.set_caption("Game")
-
+        self.refresh_rate = 0
+        self.pause = False
+        
         self.player = Player(70, 500, 20, 50, texture="textures/elweon.png")
         self.blocks = []
         self.enemy_list = []
@@ -46,7 +51,17 @@ class Game:
         self.current_camera = self.camera
         self.free_camera_mode = False
 
-    def on_f3_press(self):
+        #global
+        self.show_menu = False
+        self.show_fps = False
+        self.variable1 = False
+        self.variable2 = False
+        self.font = pygame.font.Font(None, 36)
+        #colors
+        self.BLACK = (0,0,0)
+        #asd
+        self.text_input = TextInput("Initial Text", position=(50, 50))
+    def on_toggle_f3(self):
         self.free_camera_mode = not self.free_camera_mode
         if self.free_camera_mode:
             print("Modo de cámara libre habilitado. Usa las flechas del teclado para mover la cámara.")
@@ -54,7 +69,18 @@ class Game:
         else:
             print("Modo de cámara libre deshabilitado. La cámara seguirá al jugador.")
             self.current_camera = self.camera
-
+            self.current_camera.set_target(self.player)
+            
+    def handle_menu_click(self, evt):
+        if self.show_menu:
+            mouse_x, mouse_y = pygame.mouse.get_pos()
+            if self.width - 150 <= mouse_x <= self.width and 0 <= mouse_y <= 120:
+                self.variable1 = not self.variable1
+            elif self.width - 150 <= mouse_x <= self.width and 150 <= mouse_y <= 270:
+                self.variable2 = not self.variable2
+            elif self.width - 150 <= mouse_x <= self.width and 300 <= mouse_y <= 420:
+                self.show_fps = not self.show_fps
+                
     def initialize_textures(self):
         for block in self.blocks:
             if block.texture and block.texture not in self.textures:
@@ -78,6 +104,8 @@ class Game:
             self.current_camera.set_target(self.player)
         else:
             self.current_camera = self.free_camera
+            self.current_camera.set_target(None)
+
 
     def check_enemy_collision(self, player, enemy):
         player_rect = pygame.Rect(player.x, player.y, player.width, player.height)
@@ -141,52 +169,56 @@ class Game:
         self.set_background("textures/background/background_layer1.png")
         chat = ""
         for i in (Enemy(450, 500, 50, 50, 2), Enemy(550, 500, 50, 50, 2), Enemy(1000, 500, 50, 50, 2),
-                  Enemy(1050, 500, 50, 50, 2), Enemy(1100, 500, 50, 50, 2),
-                  Enemy(4000, 500, 50, 50, 2), Enemy(4050, 500, 50, 50, 2), Enemy(4100, 500, 50, 50, 2)):
+                Enemy(1050, 500, 50, 50, 2), Enemy(1100, 500, 50, 50, 2),
+                Enemy(4000, 500, 50, 50, 2), Enemy(4050, 500, 50, 50, 2), Enemy(4100, 500, 50, 50, 2)):
             self.enemy_list.append(i)
         print(len(self.blocks))
         while running:
             current_time = pygame.time.get_ticks()
             elapsed_time = (current_time - self.start_time) / 1000
-            self.chat = f"Tiempo: {round(elapsed_time)} segundos, Puntaje: {self.player.points}, Vidas: {self.player.lifes},(FPS: {self.clock})"
             for event in pygame.event.get():
-                if event.type == pygame.QUIT:
-                    running = False
+                if event.type == pygame.QUIT:running = False
                 elif event.type == pygame.KEYDOWN:
-                    if event.key == pygame.K_F3:
-                        self.toggle_free_camera()
-                elif self.free_camera_mode:
-                    self.current_camera.handle_event(event)
+                    if event.key == pygame.K_F3:self.on_toggle_f3()  
+                    elif event.key == pygame.K_F4:self.show_menu = not self.show_menu
+                    elif event.key == pygame.K_ESCAPE:self.pause = not self.pause
+                elif event.type == pygame.MOUSEBUTTONDOWN:self.handle_menu_click(event)
+                elif self.free_camera_mode:self.current_camera.handle_event(event)
+                if self.show_menu:self.text_input.handle_event(event)
 
             keys = pygame.key.get_pressed()
+            
+            if not self.pause:
 
-            self.update(keys, event)
+                self.update(keys, event)
 
-            if keys[pygame.K_a] or keys[pygame.K_d]:
-                self.player.current_animation = "walk"
-            else:
-                self.player.current_animation = "idle"
+                if keys[pygame.K_a] or keys[pygame.K_d]:
+                    self.player.current_animation = "walk"
+                else:
+                    self.player.current_animation = "idle"
 
-            if self.player.x > 395:
-                self.camera_x = self.player.x - self.screen_width // 2
-
-            for enemy in self.enemy_list:
-                if enemy.is_life:
-                    enemy.move()
-                    enemy.check_collision(self.blocks)
-                    enemy.update_animation()
-                    self.check_enemy_collision(self.player, enemy)
-                    Debug.draw_debug_rect(self.screen, enemy)
+                if self.player.x > 395:
+                    self.camera_x = self.player.x - self.screen_width // 2
+                    if not self.free_camera_mode:
+                        self.current_camera.set_target(self.player)
+                        
+                for enemy in self.enemy_list:
+                    if enemy.is_life and canView(self.player.x,enemy.x,self.player.y, enemy.y, self.screen_width, self.screen_height):
+                        enemy.move()
+                        enemy.check_collision(self.blocks)
+                        enemy.update_animation()
+                        self.check_enemy_collision(self.player, enemy)
+                        Debug.draw_debug_rect(self.screen, enemy)
+                    else:self.enemy_list.remove(enemy)
 
             self.render()
-            self.player.debug_info()
-            self.clock.tick(60)
+            self.clock.tick(self.refresh_rate)
 
         pygame.quit()
         sys.exit()
 
     def draw_map(self):
-        chunk_size = 50
+        chunk_size = 40
 
         start_index = max(0, int(self.current_camera.x / 50) - chunk_size)
         end_index = min(len(self.blocks), int((self.current_camera.x + self.screen_width) / 50) + chunk_size)
@@ -204,15 +236,42 @@ class Game:
         self.draw_map()
 
         self.player.update_animation()
-        self.player.draw(self.screen, self.current_camera)
+        self.player.draw(self.screen, self.camera)
 
         for enemy in self.enemy_list:
-            enemy.draw(self.screen, self.current_camera)
-            
-        greeting_text = TextBlock(x=50, y=50, width=200, height=50, text=f"{self.clock.get_fps()}", font_size=24, font_color=(255, 255, 255), draw_background=False)
-        greeting_text.draw(self.screen)
+            enemy.draw(self.screen, self.camera)
 
+        if self.show_menu:
+            pygame.draw.rect(self.screen, (200, 200, 200), (self.width - 150, 0, 150, self.height))
+
+            checkbox1_rect = pygame.Rect(self.width - 140, 20, 20, 20)
+            pygame.draw.rect(self.screen, self.BLACK, checkbox1_rect, 2)
+            if self.variable1:
+                pygame.draw.rect(self.screen, self.BLACK, checkbox1_rect)
+
+            checkbox2_rect = pygame.Rect(self.width - 140, 170, 20, 20)
+            pygame.draw.rect(self.screen, self.BLACK, checkbox2_rect, 2)
+            if self.variable2:
+                pygame.draw.rect(self.screen, self.BLACK, checkbox2_rect)
+
+            checkbox_fps_rect = pygame.Rect(self.width - 140, 320, 20, 20)
+            pygame.draw.rect(self.screen, self.BLACK, checkbox_fps_rect, 2)
+            if self.show_fps:
+                pygame.draw.rect(self.screen, self.BLACK, checkbox_fps_rect)
+
+            # Render FPS text
+            fps_text = self.font.render("Show FPS", True, self.BLACK)
+            self.screen.blit(fps_text, (self.width - 140, 290))
+            
+            self.text_input.render(self.screen)
+
+        # Display FPS if enabled
+        if self.show_fps:
+            greeting_text = TextBlock(x=20, y=20, width=200, height=50, text=f"{self.clock.get_fps()}", font_size=24, font_color=(0, 0, 0), draw_background=False)
+            greeting_text.draw(self.screen)
+        
         pygame.display.update()
+
 
     def update(self, keys, event):
         self.player.update(self.screen_height)

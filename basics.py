@@ -4,6 +4,8 @@ from particle import Particle
 from object import GameObject
 import time
 import functools
+from numba import njit
+
 class Debug:
     @staticmethod
     def draw_debug_rect(screen, obj, color=(255, 255, 255), thickness=1):
@@ -126,11 +128,11 @@ class Camera:
 
     def set_target(self, target):
         self.target = target
-
+    
     def update(self):
         if self.target:
-            self.x = self.target.rect.centerx - self.width / 2
-            self.y = self.target.rect.centery - self.height / 2
+            player_rect = self.target.get_rect()
+            self.x = player_rect.centerx - self.width / 2
 
     def apply(self, rect):
         scaled_x = (rect.x - self.x) * self.zoom
@@ -169,3 +171,37 @@ class FreeCamera(Camera):
         scaled_y = (rect.y - self.y) * self.zoom
 
         return pygame.Rect(scaled_x, scaled_y, rect.width * self.zoom, rect.height * self.zoom)
+
+class TextInput:
+    def __init__(self, text="", position=(0, 0), font_size=30, width=200, height=40, color=(255, 255, 255), background_color=(0, 0, 0)):
+        self.text = text
+        self.position = position
+        self.font_size = font_size
+        self.width = width
+        self.height = height
+        self.color = color
+        self.background_color = background_color
+        self.font = pygame.font.Font(None, self.font_size)
+        self.is_active = False
+
+    def handle_event(self, event):
+        if event.type == pygame.MOUSEBUTTONDOWN:
+            x, y = event.pos
+            if self.position[0] < x < self.position[0] + self.width and self.position[1] < y < self.position[1] + self.height:
+                self.is_active = True
+            else:
+                self.is_active = False
+        elif event.type == pygame.KEYDOWN and self.is_active:
+            if event.key == pygame.K_RETURN:
+                self.is_active = False
+            elif event.key == pygame.K_BACKSPACE:
+                self.text = self.text[:-1]
+            else:
+                self.text += event.unicode
+
+    def render(self, screen):
+        pygame.draw.rect(screen, self.background_color, (self.position[0], self.position[1], self.width, self.height))
+        pygame.draw.rect(screen, self.color, (self.position[0], self.position[1], self.width, self.height), 2)
+
+        text_surface = self.font.render(self.text, True, self.color)
+        screen.blit(text_surface, (self.position[0] + 5, self.position[1] + 5))
