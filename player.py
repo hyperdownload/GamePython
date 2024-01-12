@@ -157,8 +157,6 @@ class Player:
         self.current_animation = "death"
         self.x=50
         self.y=500
-        for enemy in enemys:
-            enemy.is_life=True
         self.camera_x=self.x
     def debug_info(self):
         pass

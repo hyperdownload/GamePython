@@ -22,7 +22,7 @@ class Game:
         self.screen = pygame.display.set_mode((self.screen_width, self.screen_height))
         self.start_time = pygame.time.get_ticks()
         pygame.display.set_caption("Game")
-        self.refresh_rate = 0
+        self.refresh_rate = 60
         self.pause = False
         
         self.player = Player(70, 500, 20, 50, texture="textures/elweon.png")
@@ -61,6 +61,10 @@ class Game:
         self.BLACK = (0,0,0)
         #asd
         self.text_input = TextInput("Initial Text", position=(50, 50))
+        #
+        self.enemy_preload = {Enemy(450, 500, 50, 50, 2), Enemy(550, 500, 50, 50, 2), Enemy(1000, 500, 50, 50, 2),
+                Enemy(1050, 500, 50, 50, 2), Enemy(1100, 500, 50, 50, 2),
+                Enemy(4000, 500, 50, 50, 2), Enemy(4050, 500, 50, 50, 2), Enemy(4100, 500, 50, 50, 2)}
     def on_toggle_f3(self):
         self.free_camera_mode = not self.free_camera_mode
         if self.free_camera_mode:
@@ -118,11 +122,13 @@ class Game:
                     player.x > enemy.x + enemy.width / 2) and not self.player.y_speed > 0:
                 self.player.death()
                 self.player.respawn(self.camera_x, self.enemy_list)
+                self.enemy_list.clear()
+                self.enemy_list.extend(self.enemy_preload)
                 self.camera_x = self.player.x - 50
             elif player_rect.colliderect(enemy_top_zone):
+                self.enemy_list.remove(enemy)
                 self.player.y_speed = -15
                 enemy.current_animation = "death"
-                enemy.is_life = False
                 Interface.draw_text(self.screen, "+100", enemy.x - self.camera_x, enemy.y, 50, (255, 255, 255),
                                      duration=10)
                 self.player.points += 100
@@ -168,10 +174,7 @@ class Game:
         self.initialize_textures()
         self.set_background("textures/background/background_layer1.png")
         chat = ""
-        for i in (Enemy(450, 500, 50, 50, 2), Enemy(550, 500, 50, 50, 2), Enemy(1000, 500, 50, 50, 2),
-                Enemy(1050, 500, 50, 50, 2), Enemy(1100, 500, 50, 50, 2),
-                Enemy(4000, 500, 50, 50, 2), Enemy(4050, 500, 50, 50, 2), Enemy(4100, 500, 50, 50, 2)):
-            self.enemy_list.append(i)
+        self.enemy_list.extend(self.enemy_preload)
         print(len(self.blocks))
         while running:
             current_time = pygame.time.get_ticks()
@@ -203,13 +206,11 @@ class Game:
                         self.current_camera.set_target(self.player)
                         
                 for enemy in self.enemy_list:
-                    if enemy.is_life and canView(self.player.x,enemy.x,self.player.y, enemy.y, self.screen_width, self.screen_height):
+                    if canView(self.player.x,enemy.x,self.player.y, enemy.y, self.screen_width, self.screen_height):
                         enemy.move()
                         enemy.check_collision(self.blocks)
                         enemy.update_animation()
                         self.check_enemy_collision(self.player, enemy)
-                        Debug.draw_debug_rect(self.screen, enemy)
-                    else:self.enemy_list.remove(enemy)
 
             self.render()
             self.clock.tick(self.refresh_rate)
@@ -236,10 +237,10 @@ class Game:
         self.draw_map()
 
         self.player.update_animation()
-        self.player.draw(self.screen, self.camera)
+        self.player.draw(self.screen, self.current_camera)
 
         for enemy in self.enemy_list:
-            enemy.draw(self.screen, self.camera)
+            enemy.draw(self.screen, self.current_camera)
 
         if self.show_menu:
             pygame.draw.rect(self.screen, (200, 200, 200), (self.width - 150, 0, 150, self.height))
