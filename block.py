@@ -12,4 +12,4 @@ class Block:
         if not self.morido:
             self.morido = False
         if not self.texture and not self.color:
-            self.color = (255, 0, 255)
+            self.color = (255, 0, 255)#asdasdasdasdas
