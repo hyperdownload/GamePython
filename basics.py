@@ -1,5 +1,6 @@
 #basics.py
 import pygame
+import json
 from particle import Particle
 from object import GameObject
 import time
@@ -49,16 +50,121 @@ class Debug:
 
     def on_f3_press():
         show_statistics()
+
+
+class Camera:
+    def __init__(self, width, height):
+        self.width = width
+        self.height = height
+        self.x = 0
+        self.y = 0
+        self.zoom = 1.0
+        self.target = None
+
+    def set_target(self, target):
+        self.target = target
+    
+    def update(self):
+        if self.target:
+            player_rect = self.target.get_rect()
+            self.x = player_rect.centerx - self.width / 2
+
+    def apply(self, rect):
+        scaled_x = (rect.x - self.x) * self.zoom
+        scaled_y = (rect.y - self.y) * self.zoom
+
+        return pygame.Rect(scaled_x, scaled_y, rect.width * self.zoom, rect.height * self.zoom)
+
+    def handle_event(self, event):
+        if event.type == pygame.MOUSEBUTTONDOWN and event.button == 4:  
+            self.zoom *= 1.1
+        elif event.type == pygame.MOUSEBUTTONDOWN and event.button == 5: 
+            self.zoom /= 1.1
+
+class FreeCamera(Camera):
+    def update(self):
+        keys = pygame.key.get_pressed()
+        speed = 5
+
+        if keys[pygame.K_LEFT]:
+            self.x -= speed
+        if keys[pygame.K_RIGHT]:
+            self.x += speed
+        if keys[pygame.K_UP]:
+            self.y -= speed
+        if keys[pygame.K_DOWN]:
+            self.y += speed
+
+
+        for event in pygame.event.get():
+            if event.type == pygame.MOUSEBUTTONDOWN and event.button == 4:  
+                self.zoom *= 1.1
+            elif event.type == pygame.MOUSEBUTTONDOWN and event.button == 5:  
+                self.zoom /= 1.1
+    def apply(self, rect):
+        scaled_x = (rect.x - self.x) * self.zoom
+        scaled_y = (rect.y - self.y) * self.zoom
+
+        return pygame.Rect(scaled_x, scaled_y, rect.width * self.zoom, rect.height * self.zoom)
+    
 class UIElement:
-    def __init__(self, x, y, width, height):
+    def __init__(self, x, y, width, height, element_id, json_file):
         self.rect = pygame.Rect(x, y, width, height)
+        self.is_dragging = False
+        self.element_id = element_id
+        self.json_file = json_file
+        self.load_positions_from_json()
 
     def draw(self, screen):
         pass
 
+    def handle_mouse_event(self, event):
+        if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+            self.check_click(event.pos)
+        elif event.type == pygame.MOUSEMOTION and self.is_dragging:
+            self.move_with_mouse(event.rel)
+        elif event.type == pygame.MOUSEBUTTONUP and event.button == 1:
+            self.is_dragging = False
+            self.save_positions_to_json()
+
+    def check_click(self, pos):
+        if self.rect.collidepoint(pos):
+            self.is_dragging = True
+
+    def move_with_mouse(self, rel):
+        if self.is_dragging:
+            self.rect.move_ip(rel)
+
+    def save_positions_to_json(self):
+        positions_data = {}
+        try:
+            with open(self.json_file, 'r') as json_file:
+                positions_data = json.load(json_file)
+        except FileNotFoundError:
+            pass
+
+        positions_data[self.element_id] = {
+            "x": self.rect.x,
+            "y": self.rect.y
+        }
+
+        with open(self.json_file, 'w') as json_file:
+            json.dump(positions_data, json_file)
+
+    def load_positions_from_json(self):
+        try:
+            with open(self.json_file, 'r') as json_file:
+                positions_data = json.load(json_file)
+                element_data = positions_data.get(self.element_id, {})
+                self.rect.x = element_data.get("x", self.rect.x)
+                self.rect.y = element_data.get("y", self.rect.y)
+        except FileNotFoundError:
+            # If the JSON file doesn't exist, use default positions
+            pass
+
 class TextBlock(UIElement):
-    def __init__(self, x, y, width, height, text="", font_size=20, font_color=(255, 255, 255), max_chars=None, draw_background=True):
-        super().__init__(x, y, width, height)
+    def __init__(self, x, y, width, height, text="", font_size=20, font_color=(255, 255, 255), max_chars=None, draw_background=True, element_id=None, json_file=None):
+        super().__init__(x, y, width, height, element_id, json_file)
         self.text = text
         self.font_size = font_size
         self.font_color = font_color
@@ -117,63 +223,9 @@ class TextBlock(UIElement):
             screen.blit(image, (self.rect.x, current_y))
             current_y += image.get_rect().height
 
-class Camera:
-    def __init__(self, width, height):
-        self.width = width
-        self.height = height
-        self.x = 0
-        self.y = 0
-        self.zoom = 1.0
-        self.target = None
-
-    def set_target(self, target):
-        self.target = target
-    
-    def update(self):
-        if self.target:
-            player_rect = self.target.get_rect()
-            self.x = player_rect.centerx - self.width / 2
-
-    def apply(self, rect):
-        scaled_x = (rect.x - self.x) * self.zoom
-        scaled_y = (rect.y - self.y) * self.zoom
-
-        return pygame.Rect(scaled_x, scaled_y, rect.width * self.zoom, rect.height * self.zoom)
-
-    def handle_event(self, event):
-        if event.type == pygame.MOUSEBUTTONDOWN and event.button == 4:  
-            self.zoom *= 1.1
-        elif event.type == pygame.MOUSEBUTTONDOWN and event.button == 5: 
-            self.zoom /= 1.1
-
-class FreeCamera(Camera):
-    def update(self):
-        keys = pygame.key.get_pressed()
-        speed = 5
-
-        if keys[pygame.K_LEFT]:
-            self.x -= speed
-        if keys[pygame.K_RIGHT]:
-            self.x += speed
-        if keys[pygame.K_UP]:
-            self.y -= speed
-        if keys[pygame.K_DOWN]:
-            self.y += speed
-
-
-        for event in pygame.event.get():
-            if event.type == pygame.MOUSEBUTTONDOWN and event.button == 4:  
-                self.zoom *= 1.1
-            elif event.type == pygame.MOUSEBUTTONDOWN and event.button == 5:  
-                self.zoom /= 1.1
-    def apply(self, rect):
-        scaled_x = (rect.x - self.x) * self.zoom
-        scaled_y = (rect.y - self.y) * self.zoom
-
-        return pygame.Rect(scaled_x, scaled_y, rect.width * self.zoom, rect.height * self.zoom)
-
-class TextInput:
-    def __init__(self, text="", position=(0, 0), font_size=30, width=200, height=40, color=(255, 255, 255), background_color=(0, 0, 0)):
+class TextInput(UIElement):
+    def __init__(self, text="", position=(0, 0), font_size=30, width=200, height=40, color=(255, 255, 255), background_color=(0, 0, 0), element_id=None, json_file=None):
+        super().__init__(position[0], position[1], width, height, element_id, json_file)
         self.text = text
         self.position = position
         self.font_size = font_size
@@ -185,9 +237,11 @@ class TextInput:
         self.is_active = False
 
     def handle_event(self, event):
+        super().handle_mouse_event(event)  
+        
         if event.type == pygame.MOUSEBUTTONDOWN:
             x, y = event.pos
-            if self.position[0] < x < self.position[0] + self.width and self.position[1] < y < self.position[1] + self.height:
+            if self.rect.x < x < self.rect.x + self.width and self.rect.y < y < self.rect.y + self.height: #linea con error
                 self.is_active = True
             else:
                 self.is_active = False
@@ -200,8 +254,9 @@ class TextInput:
                 self.text += event.unicode
 
     def render(self, screen):
-        pygame.draw.rect(screen, self.background_color, (self.position[0], self.position[1], self.width, self.height))
-        pygame.draw.rect(screen, self.color, (self.position[0], self.position[1], self.width, self.height), 2)
+        pygame.draw.rect(screen, self.background_color, (self.rect.x, self.rect.y, self.width, self.height))
+        pygame.draw.rect(screen, self.color, (self.rect.x, self.rect.y, self.width, self.height), 2)
 
         text_surface = self.font.render(self.text, True, self.color)
-        screen.blit(text_surface, (self.position[0] + 5, self.position[1] + 5))
+        screen.blit(text_surface, (self.rect.x + 5, self.rect.y + 5))
+

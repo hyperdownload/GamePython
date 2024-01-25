@@ -7,8 +7,8 @@ class GameObject:
         self.rect = pygame.Rect(x, y, width, height)
         self.color = color
         self.depth = depth
-        self.image = pygame.Surface((width, height))  # Creamos una superficie para el objeto
-        self.image.fill(color)  # Rellenamos la superficie con el color del objeto
+        self.image = pygame.Surface((width, height))  
+        self.image.fill(color)  
 
     def draw(self, screen, camera_rect=None):
         if camera_rect:

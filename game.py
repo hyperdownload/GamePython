@@ -1,6 +1,6 @@
 import pygame
 import sys
-from Tools import canView
+from Tools import *
 from interface import *
 from sound_manager import SoundManager
 from animation import Animation
@@ -19,7 +19,7 @@ class Game:
         self.screen_height = 600
         self.width = self.screen_width
         self.height = self.screen_height
-        self.screen = pygame.display.set_mode((self.screen_width, self.screen_height))
+        self.screen = pygame.display.set_mode((self.screen_width, self.screen_height), pygame.RESIZABLE)
         self.start_time = pygame.time.get_ticks()
         pygame.display.set_caption("Game")
         self.refresh_rate = 60
@@ -57,10 +57,21 @@ class Game:
         self.variable1 = False
         self.variable2 = False
         self.font = pygame.font.Font(None, 36)
+        self.fullscreen = False
         #colors
         self.BLACK = (0,0,0)
         #asd
-        self.text_input = TextInput("Initial Text", position=(50, 50))
+        self.text_input = TextInput(
+            text="Initial Text",
+            position=(50, 50),
+            font_size=20,
+            width=200,
+            height=40,
+            color=(255, 255, 255),
+            background_color=(0, 0, 0),
+            element_id="text_input_1",  # Un identificador único para este elemento
+            json_file="positions.json"  # El archivo JSON donde se guardarán las posiciones
+        )
         #
         self.enemy_preload = {Enemy(450, 500, 50, 50, 2), Enemy(550, 500, 50, 50, 2), Enemy(1000, 500, 50, 50, 2),
                 Enemy(1050, 500, 50, 50, 2), Enemy(1100, 500, 50, 50, 2),
@@ -180,6 +191,14 @@ class Game:
             current_time = pygame.time.get_ticks()
             elapsed_time = (current_time - self.start_time) / 1000
             for event in pygame.event.get():
+                if event.type == pygame.VIDEORESIZE:
+                    # Obtener la nueva resolución de la ventana
+                    width, height = event.w, event.h
+                    # Reescalar la ventana manteniendo la resolución original
+                    screen = pygame.display.set_mode((width, height), pygame.RESIZABLE)
+                elif event.type == pygame.KEYDOWN:
+                    if event.key == pygame.K_F11:
+                        toggle_fullscreen()
                 if event.type == pygame.QUIT:running = False
                 elif event.type == pygame.KEYDOWN:
                     if event.key == pygame.K_F3:self.on_toggle_f3()  
@@ -268,7 +287,18 @@ class Game:
 
         # Display FPS if enabled
         if self.show_fps:
-            greeting_text = TextBlock(x=20, y=20, width=200, height=50, text=f"{self.clock.get_fps()}", font_size=24, font_color=(0, 0, 0), draw_background=False)
+            greeting_text = TextBlock(
+                x=20,
+                y=20,
+                width=200,
+                height=50,
+                text=f"{self.clock.get_fps()}",
+                font_size=24,
+                font_color=(0, 0, 0),
+                draw_background=False,
+                element_id="greeting_text",  
+                json_file="positions.json" 
+            )
             greeting_text.draw(self.screen)
         
         pygame.display.update()
